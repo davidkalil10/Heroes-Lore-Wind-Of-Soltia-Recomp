@@ -741,3 +741,21 @@ Fonte: `heroes_lore_modern/PROJECT_KNOWLEDGE_BACKUP.md`
     - `ASPECT_WIDESCREEN = 2`: Força a expansão de viewport widescreen 16:9 (568x320) com maior campo de visão de mapa.
   - *Persistência:* Salvo no arquivo `hl_settings.ini` via chave `aspect_mode=0|1|2`.
   - *Atalhos Mantidos:* Atalhos de gamepad (SELECT + START, botão GUIDE) e de teclado (F7, F10) agora ciclam suavemente entre as 3 opções (`Auto` -> `3:4` -> `16:9` -> `Auto`), exibindo a respectiva mensagem OSD.
+
+## Sessão 30 (Organização do Cloud Save em Pasta Dedicada no Google Drive e Auto-Migração)
+
+- **Causa da Visibilidade do Arquivo na Raiz do Google Drive:**
+  - *Diagnóstico:* O arquivo de backup `heroes_lore_save.json` aparecia visível e solto na pasta raiz do Google Drive do jogador.
+  - *Causa Raiz:* O Google OAuth 2.0 Device Flow (RFC 8628 para TVs & Limited Input Devices) rejeita categoricamente o escopo restrito `https://www.googleapis.com/auth/drive.appdata` com `HTTP 400: invalid_scope`. O escopo permitido e seguro é `https://www.googleapis.com/auth/drive.file`. Entretanto, como nenhum diretório pai era informado na criação do arquivo (`POST /drive/v3/files`), a API do Google Drive assume como padrão a pasta raiz (`root`).
+- **Solução Arquitetural: Pasta Dedicada e Auto-Migração Transparente:**
+  1. **Pasta Dedicada Automática (`getOrCreateAppFolder`):**
+     - Ao consultar ou subir um backup, o jogo busca no Drive uma pasta chamada `"Heroes Lore - Wind of Soltia"` (`mimeType='application/vnd.google-apps.folder' and trashed=false`).
+     - Caso não exista, o jogo cria a pasta automaticamente via `POST https://www.googleapis.com/drive/v3/files` e armazena seu ID em cache (`s_appFolderId`).
+  2. **Uploads Direcionados à Pasta:**
+     - Novos arquivos de backup incluem `"parents": [folderId]` no metadado multipart, sendo gravados diretamente dentro da pasta dedicada.
+     - Em atualizações de metadados de arquivos existentes, o endpoint recebe o parâmetro `?addParents={folderId}`.
+  3. **Auto-Migração de Saves Antigos da Raiz:**
+     - Na rotina assíncrona de consulta (`queryCloudBackupAsync`), a requisição agora solicita o campo `parents` na lista de arquivos.
+     - Se o save `heroes_lore_save.json` já existir mas estiver localizado na raiz (ou fora da pasta dedicada), o sistema dispara automaticamente uma chamada `PATCH https://www.googleapis.com/drive/v3/files/{id}?addParents={folderId}&removeParents={oldParent}`.
+     - O arquivo é movido para dentro da pasta `"Heroes Lore - Wind of Soltia"` preservando o mesmo ID de arquivo, data e integridade, limpando a raiz do Drive do usuário de forma 100% invisível e automática.
+

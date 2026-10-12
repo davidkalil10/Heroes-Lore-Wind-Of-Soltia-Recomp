@@ -57,6 +57,7 @@ static std::string s_accessToken = "";
 static std::string s_refreshToken = "";
 static uint64_t s_tokenExpiryEpoch = 0;
 static VM* s_activeVm = nullptr;
+static std::string s_appFolderId = "";
 
 static SDL_Rect s_modalRect = {0, 0, 0, 0};
 static SDL_Rect s_btnAction1 = {0, 0, 0, 0};
@@ -391,6 +392,20 @@ static std::string extractJsonString(const std::string& json, const std::string&
   if (q1 == std::string::npos) return "";
   size_t q2 = json.find('"', q1 + 1);
   if (q2 == std::string::npos) return "";
+  return json.substr(q1 + 1, q2 - q1 - 1);
+}
+
+static std::string extractFirstParentId(const std::string& json) {
+  size_t p = json.find("\"parents\"");
+  if (p == std::string::npos) return "";
+  size_t ob = json.find('[', p);
+  if (ob == std::string::npos) return "";
+  size_t cb = json.find(']', ob);
+  if (cb == std::string::npos) return "";
+  size_t q1 = json.find('"', ob);
+  if (q1 == std::string::npos || q1 > cb) return "";
+  size_t q2 = json.find('"', q1 + 1);
+  if (q2 == std::string::npos || q2 > cb) return "";
   return json.substr(q1 + 1, q2 - q1 - 1);
 }
 
@@ -1184,6 +1199,7 @@ void CloudSave::logout() {
   s_refreshToken = "";
   s_accessToken = "";
   s_tokenExpiryEpoch = 0;
+  s_appFolderId = "";
   s_cloudBackup = CloudBackupInfo{};
   std::error_code ec;
   std::filesystem::remove(getAuthFilePath(), ec);
@@ -1193,7 +1209,55 @@ void CloudSave::logout() {
 }
 
 // -----------------------------------------------------------------------------
-// Consulta de Backup no Google Drive (appDataFolder)
+// Pasta dedicada "Heroes Lore - Wind of Soltia" no Google Drive
+// -----------------------------------------------------------------------------
+static std::string getOrCreateAppFolder() {
+  if (!s_appFolderId.empty()) {
+    return s_appFolderId;
+  }
+  if (!ensureValidAccessToken()) return "";
+
+  // 1. Busca se a pasta já existe
+  std::string q = "name='Heroes Lore - Wind of Soltia' and mimeType='application/vnd.google-apps.folder' and trashed=false";
+  std::string url = "https://www.googleapis.com/drive/v3/files?fields=" + urlEncode("files(id,name)") +
+                    "&q=" + urlEncode(q);
+  std::vector<std::string> headers = {
+    "Authorization: Bearer " + s_accessToken
+  };
+
+  HttpResponse resp = httpExecute("GET", url, headers, "");
+  if (resp.statusCode == 200) {
+    std::string fid = extractJsonString(resp.body, "id");
+    if (!fid.empty()) {
+      s_appFolderId = fid;
+      return s_appFolderId;
+    }
+  }
+
+  // 2. Se não existir, cria a pasta dedicada
+  std::string createUrl = "https://www.googleapis.com/drive/v3/files";
+  std::string createBody = "{\"name\": \"Heroes Lore - Wind of Soltia\", "
+                           "\"mimeType\": \"application/vnd.google-apps.folder\"}";
+  std::vector<std::string> createHeaders = {
+    "Authorization: Bearer " + s_accessToken,
+    "Content-Type: application/json; charset=UTF-8"
+  };
+
+  HttpResponse cResp = httpExecute("POST", createUrl, createHeaders, createBody);
+  if (cResp.statusCode == 200) {
+    std::string fid = extractJsonString(cResp.body, "id");
+    if (!fid.empty()) {
+      s_appFolderId = fid;
+      printf("[CloudSave] Pasta criada no Google Drive: 'Heroes Lore - Wind of Soltia' (id=%s)\n", fid.c_str());
+      return s_appFolderId;
+    }
+  }
+
+  return "";
+}
+
+// -----------------------------------------------------------------------------
+// Consulta de Backup no Google Drive
 // -----------------------------------------------------------------------------
 void CloudSave::queryCloudBackupAsync() {
   if (!isLoggedIn()) return;
@@ -1201,9 +1265,12 @@ void CloudSave::queryCloudBackupAsync() {
   runAsync([]() {
     if (!ensureValidAccessToken()) return;
 
+    // Garante que a pasta dedicada do jogo exista
+    std::string folderId = getOrCreateAppFolder();
+
     // Busca arquivo heroes_lore_save.json
     std::string url = "https://www.googleapis.com/drive/v3/files?orderBy=modifiedTime%20desc"
-                      "&fields=" + urlEncode("files(id,name,modifiedTime,size,description)") +
+                      "&fields=" + urlEncode("files(id,name,modifiedTime,size,description,parents)") +
                       "&q=" + urlEncode("name='heroes_lore_save.json' and trashed=false");
     std::vector<std::string> headers = {
       "Authorization: Bearer " + s_accessToken
@@ -1221,6 +1288,23 @@ void CloudSave::queryCloudBackupAsync() {
         s_cloudBackup.summary = extractJsonString(resp.body, "description");
         sanitizeCloudSummary(s_cloudBackup.summary);
         s_cloudBackup.fileSize = (size_t)extractJsonInt(resp.body, "size", 0);
+
+        // Se o arquivo estiver solto fora da pasta dedicada, migra-o automaticamente para dentro dela!
+        if (!folderId.empty()) {
+          std::string parentId = extractFirstParentId(resp.body);
+          if (parentId != folderId) {
+            std::string moveUrl = "https://www.googleapis.com/drive/v3/files/" + id +
+                                  "?addParents=" + folderId +
+                                  (parentId.empty() ? "" : "&removeParents=" + parentId);
+            std::vector<std::string> moveHeaders = {
+              "Authorization: Bearer " + s_accessToken
+            };
+            HttpResponse moveResp = httpExecute("PATCH", moveUrl, moveHeaders, "");
+            if (moveResp.statusCode == 200) {
+              printf("[CloudSave] Arquivo 'heroes_lore_save.json' migrado com sucesso para a pasta 'Heroes Lore - Wind of Soltia'!\n");
+            }
+          }
+        }
       } else {
         std::lock_guard<std::mutex> lock(s_cloudMutex);
         s_cloudBackup.exists = false;
@@ -1245,6 +1329,8 @@ void CloudSave::uploadBackupAsync() {
       s_statusMessage = "Falha de autenticacao com Google Drive.";
       return;
     }
+
+    std::string folderId = getOrCreateAppFolder();
 
     std::string rmsBase = Platform::getRmsDir(s_activeVm);
     const char* filesToPack[] = {
@@ -1296,8 +1382,11 @@ void CloudSave::uploadBackupAsync() {
       };
       resp = httpExecute("PATCH", patchUrl, headers, pkgStr);
 
-      // Atualiza também a descrição (resumo dos slots)
+      // Atualiza também a descrição (resumo dos slots) e garante o pai na pasta dedicada
       std::string metaUrl = "https://www.googleapis.com/drive/v3/files/" + s_cloudBackup.fileId;
+      if (!folderId.empty()) {
+        metaUrl += "?addParents=" + folderId;
+      }
       std::string metaBody = "{\"description\": \"" + jsonEscape(plat + " | " + localSummary) + "\"}";
       std::vector<std::string> metaHeaders = {
         "Authorization: Bearer " + s_accessToken,
@@ -1307,8 +1396,15 @@ void CloudSave::uploadBackupAsync() {
     } else {
       std::string postUrl = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
       std::string boundary = "HL_CLOUD_BOUNDARY_1289";
-      std::string metaJson = "{\"name\": \"heroes_lore_save.json\", "
-                             "\"description\": \"" + jsonEscape(plat + " | " + localSummary) + "\"}";
+      std::string metaJson;
+      if (!folderId.empty()) {
+        metaJson = "{\"name\": \"heroes_lore_save.json\", "
+                   "\"description\": \"" + jsonEscape(plat + " | " + localSummary) + "\", "
+                   "\"parents\": [\"" + folderId + "\"]}";
+      } else {
+        metaJson = "{\"name\": \"heroes_lore_save.json\", "
+                   "\"description\": \"" + jsonEscape(plat + " | " + localSummary) + "\"}";
+      }
 
       std::ostringstream multipart;
       multipart << "--" << boundary << "\r\n";
