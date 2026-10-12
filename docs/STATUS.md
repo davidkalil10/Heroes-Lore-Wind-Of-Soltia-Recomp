@@ -108,27 +108,27 @@ _Ãšltima atualizaÃ§Ã£o: 2026-10-04_
     - Textura minimalista `bezel_slate` em ardósia vulcânica e aço escovado com chanfros de iluminação suave.
     - Modo clássico de barras pretas puras (`bezel_black`) para puristas.
     - Alternância rápida via tecla <kbd>F5</kbd> ou clique do analógico esquerdo (<kbd>L3</kbd>).
-  - [x] Aspect Ratio & Modos de Visualização:
+  - [x] Aspect Ratio & Modos de Visualização (3 Modos no Menu de Opções):
+    - **Modo Auto (Padrão / Inicialização):** Descobre a orientação do dispositivo/janela em tempo real: aplica **16:9 Widescreen** se estiver na horizontal (`winW >= winH`) e **3:4 Original com Molduras** se estiver na vertical (`winH > winW`). Adaptação dinâmica imediata ao rotacionar o aparelho.
     - **Proporção 3:4 Original (240x320):** Escala com pixels perfeitos 1:1 e molduras temáticas de Soltia preenchendo as abas laterais em telas widescreen (16:9 / 16:10).
     - **16:9 True Widescreen (568x320 - Expansão Real de Viewport):** Renderiza **35 colunas de tiles de 16x16** (em vez de 15), ampliando a visão do mapa e revelando mais terreno sem esticar pixels (100% quadrado).
-    - Alternância rápida via tecla <kbd>F7</kbd> / <kbd>F10</kbd> (teclado) ou botão GUIDE (gamepad).
+    - Alternância rápida via tecla <kbd>F7</kbd> / <kbd>F10</kbd> (teclado), atalho de controle <kbd>SELECT + START</kbd> ou botão <kbd>GUIDE</kbd> (gamepad), e agora diretamente no **Menu de Opções do jogo (`be.class`)**.
     - Alternância de Tela Cheia com <kbd>F11</kbd> ou <kbd>Alt+Enter</kbd>.
   - [x] Seletor de Taxa de Quadros de Alta Precisão (Hardware Frame Pacer):
     - **15 FPS (Padrão Original J2ME / ~66.6ms):** Reprodução fiel e autêntica da cadência clássica do celular de 2007.
     - **30 FPS (Modo Turbo / Fluido / ~33.3ms):** Movimentação e combates ágeis sem acelerar a física além da conta.
     - Modo 60 FPS descontinuado para evitar aceleração indesejada da física/animações atreladas a ticks.
     - Frame pacer ultra-preciso via `SDL_GetPerformanceCounter()` com espera inteligente (`SDL_Delay` + spin-wait sub-milissegundo).
-    - Alternância rápida via tecla <kbd>F6</kbd> / <kbd>F8</kbd>, clique do analógico <kbd>R3</kbd>, ou botão touch na barra inferior.
+    - Alternância rápida via tecla <kbd>F6</kbd> / <kbd>F8</kbd>, clique do analógico <kbd>R3</kbd>, e agora diretamente no **Menu de Opções do jogo (`be.class`)**.
   - [x] Controles de Gamepad Otimizados com Atalhos de Combos:
-    - **Proporção (Aspect Ratio: 3:4 Original <-> 16:9 True Widescreen):** <kbd>SELECT + START</kbd>.
+    - **Proporção (Aspect Ratio: Auto <-> 3:4 Original <-> 16:9 True Widescreen):** <kbd>SELECT + START</kbd> ou <kbd>GUIDE</kbd>.
     - **Moldura Temática (Bezel: Soltia <-> Ardósia <-> Preto):** <kbd>SELECT + R3</kbd>.
     - **Velocidade (FPS: 15 Padrão <-> 30 Turbo):** <kbd>R3</kbd> (clique isolado do analógico direito).
     - **Minimapa:** <kbd>SELECT</kbd> (ao soltar isolado sem combo) e <kbd>L3</kbd> (clique do analógico esquerdo).
     - **Menu Principal:** <kbd>START</kbd> (ao pressionar isolado sem combo).
-  - [x] Botões Virtuais Touchscreen (Celular Android / Nintendo Switch):
-    - Botão touch para alternar Proporção (<kbd>16:9</kbd> / `btn_aspect`) e Velocidade (<kbd>FPS</kbd> / `btn_fps`) posicionados ergonomicamente no canto inferior direito da tela (espelhando a barra utilitária esquerda).
-    - Ícones gerados em alta fidelidade (`.rgba` e `.png`) presentes nos assets de todas as plataformas.
-    - Permanecem acessíveis e visíveis mesmo se os direcionais estiverem ocultos, com suporte responsivo tanto em Retrato quanto em Paisagem (True Widescreen).
+  - [x] Limpeza e Modernização dos Botões Virtuais Touchscreen (Celular Android / Nintendo Switch):
+    - Migração definitiva das opções de Proporção (Tela) e Taxa de Quadros (FPS) para a tela nativa de Opções (`be.class`) do jogo.
+    - Remoção dos botões virtuais do canto inferior direito no overlay touch, deixando a área inferior dos polegares totalmente limpa, espaçosa e livre de toques acidentais em smartphones e no Switch.
   - [x] Correção de Sincronização e Centralização de Menus Modais no Aspect Ratio:
     - Atualização imediata das coordenadas `x, y` centralizadas de todas as janelas modais (`ai`: Status/Item/Equip, `bp`: Loja, `bf`: Armazenamento, `ax`: Refino, `aa`: Forja) ao alternar entre 3:4 e 16:9 True Widescreen.
     - Invalidação recursiva das flags de repintura na hierarquia `cb` (`var_boolean_a`, `var_boolean_b`, `var_cb_b`), garantindo posicionamento 100% centrado sem deslocamentos visuais mesmo com menus abertos.

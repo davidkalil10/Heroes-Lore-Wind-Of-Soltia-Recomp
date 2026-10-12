@@ -151,18 +151,45 @@ enum BezelMode {
 };
 
 enum AspectMode {
-  ASPECT_ORIGINAL = 0,   // 3:4 Original com Molduras de Soltia
-  ASPECT_WIDESCREEN = 1, // 16:9 True Widescreen (Expansão Real de Viewport)
-  ASPECT_COUNT = 2
+  ASPECT_AUTO = 0,       // Auto: dinâmico pela orientação da tela (Horizontal -> 16:9, Vertical -> 3:4)
+  ASPECT_ORIGINAL = 1,   // 3:4 Original com Molduras de Soltia
+  ASPECT_WIDESCREEN = 2, // 16:9 True Widescreen (Expansão Real de Viewport)
+  ASPECT_COUNT = 3
 };
 
 static BezelMode s_bezelMode = BEZEL_SOLTIA;
 static int s_targetFps = 15; // 15 (padrão nostalgia J2ME) ou 30 (turbo fluido)
-static AspectMode s_aspectMode = ASPECT_ORIGINAL;
+static AspectMode s_aspectMode = ASPECT_AUTO;
 static bool s_isFullscreen = false;
 static int s_savedWinW = 0;
 static int s_savedWinH = 0;
+static int s_screenRotation = 0;
 static uint64_t s_frameStartCounter = 0;
+static VM* s_lastVm = nullptr;
+
+static int determineTargetWidth(AspectMode mode) {
+  if (mode == ASPECT_ORIGINAL) {
+    return SCREEN_W_ORIGINAL;
+  }
+  if (mode == ASPECT_WIDESCREEN) {
+    return SCREEN_W_WIDESCREEN;
+  }
+  // ASPECT_AUTO:
+  int winW = 0, winH = 0;
+  if (s_window) {
+    SDL_GetWindowSize(s_window, &winW, &winH);
+  }
+#ifdef __SWITCH__
+  if (s_screenRotation != 0) {
+    winW = 720;
+    winH = 1280;
+  }
+#endif
+  if (winW <= 0 || winH <= 0) {
+    return SCREEN_W_WIDESCREEN;
+  }
+  return (winW >= winH) ? SCREEN_W_WIDESCREEN : SCREEN_W_ORIGINAL;
+}
 
 static void setVmStaticInt(VM& vm, const std::string& className, const std::string& fieldName, int32_t val) {
   auto it = vm.classes.find(className);
@@ -427,6 +454,7 @@ static void updateJavaViewportVariables(VM& vm) {
 }
 
 void Platform::updateViewport(VM& vm) {
+  s_lastVm = &vm;
   updateJavaViewportVariables(vm);
 }
 
@@ -614,8 +642,8 @@ bool Platform::init(int scale) {
     return false;
   }
 
-  // Textura streaming dinâmica com resolução nativa (240x320 clássico ou 568x320 widescreen)
-  g_screenWidth = (s_aspectMode == ASPECT_WIDESCREEN) ? SCREEN_W_WIDESCREEN : SCREEN_W_ORIGINAL;
+  // Textura streaming dinâmica com resolução nativa (240x320 clássico, 568x320 widescreen ou auto)
+  g_screenWidth = determineTargetWidth(s_aspectMode);
   g_screenHeight = SCREEN_HEIGHT;
 
   s_screenTexture = SDL_CreateTexture(
@@ -750,11 +778,10 @@ static const int KEY_TOGGLE_ORIENTATION = -998;
 static const int KEY_TOGGLE_TOUCH_ASPECT = -997;
 static const int KEY_TOGGLE_TOUCH_FPS = -996;
 
-// Orientação de tela no Switch:
+// Orientação de tela no Switch (s_screenRotation declarada no topo):
 // 0 = Paisagem horizontal normal (1280x720)
 // 1 = Retrato vertical (TATE 90° CW, 720x1280)
 // 2 = Retrato vertical invertido (TATE 270° CCW / Flip Grip, 720x1280)
-static int s_screenRotation = 0;
 static SDL_Texture* s_rotateTarget = nullptr;
 
 struct ActiveFinger {
@@ -1086,10 +1113,6 @@ static GamepadLayout calculateLayout(int winW, int winH) {
     layout.buttons.push_back({ KEY_TOGGLE_ORIENTATION, curUtilX, toggleY, rToggle, rToggle * 2, rToggle * 2, s_texBtnRotate });
 #endif
 
-    // Utilitários de Proporção (16:9) e Taxa de Quadros (FPS) no canto inferior direito
-    int rightUtilX = winW - (int)(winW * 0.08f);
-    layout.buttons.push_back({ KEY_TOGGLE_TOUCH_FPS, rightUtilX, toggleY, rToggle, rToggle * 2, rToggle * 2, s_texBtnFps });
-    layout.buttons.push_back({ KEY_TOGGLE_TOUCH_ASPECT, rightUtilX - stepToggle, toggleY, rToggle, rToggle * 2, rToggle * 2, s_texBtnAspect });
 
     if (s_touchOverlayEnabled) {
       // D-Pad e Cluster de Acao subidos para winW * 0.42f (ergonomia perfeita e abre espaco inferior limpo)
@@ -1134,7 +1157,7 @@ static GamepadLayout calculateLayout(int winW, int winH) {
   } else {
     // Modo Paisagem (Landscape)
     int gameH = winH;
-    int gameW = (s_aspectMode == ASPECT_WIDESCREEN) ? (int)(gameH * (568.0f / 320.0f)) : (int)(gameH * (240.0f / 320.0f));
+    int gameW = (g_screenWidth == SCREEN_W_WIDESCREEN) ? (int)(gameH * (568.0f / 320.0f)) : (int)(gameH * (240.0f / 320.0f));
     if (gameW > winW) gameW = winW;
     int gameX = (winW - gameW) / 2;
     int gameY = (winH - gameH) / 2;
@@ -1163,11 +1186,6 @@ static GamepadLayout calculateLayout(int winW, int winH) {
     curUtilXLand += stepToggleLand;
     layout.buttons.push_back({ KEY_TOGGLE_ORIENTATION, curUtilXLand, toggleY, rToggleLand, rToggleLand * 2, rToggleLand * 2, s_texBtnRotate });
 #endif
-
-    // Utilitários de Proporção (16:9) e Taxa de Quadros (FPS) no canto inferior direito
-    int rightLandX = winW - (int)(controlRightW * 0.16f);
-    layout.buttons.push_back({ KEY_TOGGLE_TOUCH_FPS, rightLandX, toggleY, rToggleLand, rToggleLand * 2, rToggleLand * 2, s_texBtnFps });
-    layout.buttons.push_back({ KEY_TOGGLE_TOUCH_ASPECT, rightLandX - stepToggleLand, toggleY, rToggleLand, rToggleLand * 2, rToggleLand * 2, s_texBtnAspect });
 
     if (s_touchOverlayEnabled) {
       // D-Pad na coluna esquerda (grande e confortavel)
@@ -1383,6 +1401,7 @@ static void getTouchCoords(const SDL_TouchFingerEvent& tf, int winW, int winH, f
 }
 
 bool Platform::pollEvents(VM& vm) {
+  s_lastVm = &vm;
   if (s_quit) return false;
 #ifdef __SWITCH__
   if (!appletMainLoop()) {
@@ -2027,8 +2046,42 @@ bool Platform::pollEvents(VM& vm) {
   return !s_quit;
 }
 
+static void applyAspectWidth(int newWidth, VM* pVm) {
+  if (g_screenWidth == newWidth && s_screenTexture) return;
+
+  g_screenWidth = newWidth;
+  g_screenHeight = SCREEN_HEIGHT;
+
+  if (s_renderer) {
+    if (s_screenTexture) SDL_DestroyTexture(s_screenTexture);
+    s_screenTexture = SDL_CreateTexture(
+        s_renderer,
+        SDL_PIXELFORMAT_ARGB8888,
+        SDL_TEXTUREACCESS_STREAMING,
+        g_screenWidth, g_screenHeight);
+    if (s_screenTexture) {
+      SDL_SetTextureBlendMode(s_screenTexture, SDL_BLENDMODE_NONE);
+    }
+  }
+
+  if (pVm) {
+    updateJavaViewportVariables(*pVm);
+  }
+
+  memset(g_screenBuffer, 0, sizeof(g_screenBuffer));
+}
+
 void Platform::present() {
-  if (!s_renderer || !s_screenTexture) return;
+  if (!s_renderer) return;
+
+  if (s_aspectMode == ASPECT_AUTO) {
+    int targetW = determineTargetWidth(ASPECT_AUTO);
+    if (g_screenWidth != targetW) {
+      applyAspectWidth(targetW, s_lastVm);
+    }
+  }
+
+  if (!s_screenTexture) return;
 
   void* pixels = nullptr;
   int pitch = 0;
@@ -2093,7 +2146,7 @@ void Platform::present() {
   SDL_Rect dstGame = { (winW - dstW) / 2, (winH - dstH) / 2, dstW, dstH };
 
   // Renderiza moldura temática nas laterais (pillarbox) se houver espaço
-  if (s_aspectMode == ASPECT_ORIGINAL && dstGame.x > 0) {
+  if (g_screenWidth == SCREEN_W_ORIGINAL && dstGame.x > 0) {
     SDL_Texture* activeBezel = nullptr;
     if (s_bezelMode == BEZEL_SOLTIA) activeBezel = s_texBezelSoltia;
     else if (s_bezelMode == BEZEL_SLATE) activeBezel = s_texBezelSlate;
@@ -2221,35 +2274,43 @@ int Platform::getTargetFps() {
   return s_targetFps;
 }
 
-void Platform::toggleAspect(VM* pVm) {
-  s_aspectMode = static_cast<AspectMode>((s_aspectMode + 1) % ASPECT_COUNT);
-  g_screenWidth = (s_aspectMode == ASPECT_WIDESCREEN) ? SCREEN_W_WIDESCREEN : SCREEN_W_ORIGINAL;
-  g_screenHeight = SCREEN_HEIGHT;
+void Platform::setAspectMode(int mode, VM* pVm) {
+  if (mode < 0 || mode >= ASPECT_COUNT) mode = ASPECT_AUTO;
+  s_aspectMode = static_cast<AspectMode>(mode);
   saveSettings();
 
-  if (s_renderer) {
-    if (s_screenTexture) SDL_DestroyTexture(s_screenTexture);
-    s_screenTexture = SDL_CreateTexture(
-        s_renderer,
-        SDL_PIXELFORMAT_ARGB8888,
-        SDL_TEXTUREACCESS_STREAMING,
-        g_screenWidth, g_screenHeight);
-    if (s_screenTexture) {
-      SDL_SetTextureBlendMode(s_screenTexture, SDL_BLENDMODE_NONE);
+  int targetW = determineTargetWidth(s_aspectMode);
+  applyAspectWidth(targetW, pVm ? pVm : s_lastVm);
+
+  if (s_aspectMode == ASPECT_AUTO) {
+    if (targetW == SCREEN_W_WIDESCREEN) {
+      showOsdMessage("Proporcao: Auto (16:9 Widescreen Detectado)");
+    } else {
+      showOsdMessage("Proporcao: Auto (3:4 Retrato Detectado)");
     }
-  }
-
-  if (pVm) {
-    updateJavaViewportVariables(*pVm);
-  }
-
-  memset(g_screenBuffer, 0, sizeof(g_screenBuffer));
-
-  if (s_aspectMode == ASPECT_ORIGINAL) {
+  } else if (s_aspectMode == ASPECT_ORIGINAL) {
     showOsdMessage("Proporcao: 3:4 Original (Molduras Soltia)");
   } else {
     showOsdMessage("Proporcao: 16:9 True Widescreen (Mais Mapa)");
   }
+}
+
+void Platform::nextAspect(VM* pVm) {
+  int next = (static_cast<int>(s_aspectMode) + 1) % ASPECT_COUNT;
+  setAspectMode(next, pVm);
+}
+
+void Platform::prevAspect(VM* pVm) {
+  int prev = (static_cast<int>(s_aspectMode) + ASPECT_COUNT - 1) % ASPECT_COUNT;
+  setAspectMode(prev, pVm);
+}
+
+int Platform::getAspectMode() {
+  return static_cast<int>(s_aspectMode);
+}
+
+void Platform::toggleAspect(VM* pVm) {
+  nextAspect(pVm);
 }
 
 void Platform::toggleFullscreen() {

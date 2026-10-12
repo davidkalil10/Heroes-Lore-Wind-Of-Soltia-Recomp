@@ -1765,12 +1765,12 @@ static void be_a_native(VM& vm, Value* args, Value* ret) {
   int n2 = args[1].i; // GameAction
   int n3 = args[2].i; // KeyCode
 
-  // Garante que o menu possui 6 itens (0: Audio, 1: Jogo, 2: Textos, 3: Camera, 4: Idioma, 5: Nuvem)
+  // Garante que o menu possui 8 itens (0: Audio, 1: Jogo, 2: Textos, 3: Camera, 4: Idioma, 5: Nuvem, 6: Tela, 7: FPS)
   ClassInfo* cbClass = vm.findClass("cb");
   FieldInfo* fByteA = cbClass ? vm.findField(cbClass, "a:B") : nullptr;
   FieldInfo* fByteB = cbClass ? vm.findField(cbClass, "b:B") : nullptr;
   if (fByteA && fByteA->index >= 0 && fByteA->index < (int)inst->f.size()) {
-    inst->f[fByteA->index].i = 6;
+    inst->f[fByteA->index].i = 8;
   }
 
   // 1. Invoca this.b(n2, n3) para submenus se houver
@@ -1881,6 +1881,18 @@ static void be_a_native(VM& vm, Value* args, Value* ret) {
         Platform::openCloudSave(&vm);
         break;
       }
+      case 6: { // TELA / ASPECT RATIO!
+        if (isLeft) {
+          Platform::prevAspect(&vm);
+        } else {
+          Platform::nextAspect(&vm);
+        }
+        break;
+      }
+      case 7: { // TAXA DE QUADROS / FPS!
+        Platform::toggleFps();
+        break;
+      }
     }
     ret[0].i = 1;
     return;
@@ -1962,7 +1974,7 @@ static void be_draw_native(VM& vm, Value* args, Value*) {
   FieldInfo* fByteA = cbClass ? vm.findField(cbClass, "a:B") : nullptr;
   FieldInfo* fByteB = cbClass ? vm.findField(cbClass, "b:B") : nullptr;
   if (fByteA && fByteA->index >= 0 && fByteA->index < (int)inst->f.size()) {
-    inst->f[fByteA->index].i = 6;
+    inst->f[fByteA->index].i = 8;
   }
   int selectedRow = (fByteB && fByteB->index >= 0 && fByteB->index < (int)inst->f.size()) ? inst->f[fByteB->index].i : 0;
 
@@ -2021,10 +2033,9 @@ static void be_draw_native(VM& vm, Value* args, Value*) {
         if (arrK && arrK->len > 19) {
           ImageObj* img19 = static_cast<ImageObj*>(arrK->as<Object*>()[19]);
           if (img19) {
-            g->drawImage(img19, n2 + 1, n3 + 16, 20);
-            g->drawImage(img19, n2 + 1, n3 + 36, 20);
-            g->drawImage(img19, n2 + 1, n3 + 56, 20);
-            g->drawImage(img19, n2 + 1, n3 + 76, 20);
+            for (int r = 1; r < 8; ++r) {
+              g->drawImage(img19, n2 + 1, (n3 - 6) + r * 18 - 2, 20);
+            }
           }
         }
       }
@@ -2082,33 +2093,42 @@ static void be_draw_native(VM& vm, Value* args, Value*) {
   std::string txtCam = curCam ? ((curLang == "en") ? "On" : "Ligado") : ((curLang == "en") ? "Off" : "Desligado");
 
   std::string lblAudio = (curLang == "en") ? "Sound" : "Audio";
-  std::string lblGame = (curLang == "en") ? "Game" : ((curLang == "es") ? "Juego" : "Jogo");
-  std::string lblText = (curLang == "en") ? "Speech" : "Textos";
+  std::string lblGame = (curLang == "en") ? "Game" : ((curLang == "es") ? "Juego" : ((curLang == "it") ? "Gioco" : "Jogo"));
+  std::string lblText = (curLang == "en") ? "Speech" : ((curLang == "it") ? "Testi" : "Textos");
   std::string lblCam = (curLang == "en") ? "Camera" : ((curLang == "es") ? "Camara" : "Camera");
   std::string lblLang = (curLang == "en") ? "Language" : ((curLang == "it") ? "Lingua" : "Idioma");
   std::string valLang = (curLang == "pt") ? "PT-BR" : ((curLang == "en") ? "English" : ((curLang == "it") ? "Italiano" : "Espanol"));
 
-  std::string lblCloud = (curLang == "en") ? "Cloud" : "Nuvem";
-  std::string valCloud = CloudSave::isLoggedIn() ? ((curLang == "en") ? "Online" : "Online")
-                                                : ((curLang == "en") ? "Offline" : "Offline");
+  std::string lblCloud = (curLang == "en") ? "Cloud" : ((curLang == "es" || curLang == "it") ? "Nube" : "Nuvem");
+  std::string valCloud = CloudSave::isLoggedIn() ? "Online" : "Offline";
 
-  int n6 = n3;
-  drawRow(0, n6, lblAudio, txtAudio);
-  drawRow(1, n6 += 20, lblGame, txtSpd);
-  drawRow(2, n6 += 20, lblText, txtText);
-  drawRow(3, n6 += 20, lblCam, txtCam);
-  drawRow(4, n6 += 20, lblLang, valLang);
-  drawRow(5, n6 += 20, lblCloud, valCloud);
+  std::string lblAspect = (curLang == "en") ? "Screen" : ((curLang == "es") ? "Pantalla" : ((curLang == "it") ? "Schermo" : "Tela"));
+  int aspectMode = Platform::getAspectMode();
+  std::string valAspect = (aspectMode == 0) ? "Auto" : ((aspectMode == 1) ? "3:4" : "16:9");
 
-  // Desenha as setas < e > nas 6 linhas
+  std::string lblFps = "FPS";
+  std::string valFps = (Platform::getTargetFps() == 15) ? "15 FPS" : "30 FPS";
+
+  int startY = n3 - 6;
+  int stepY = 18;
+  drawRow(0, startY + 0 * stepY, lblAudio, txtAudio);
+  drawRow(1, startY + 1 * stepY, lblGame, txtSpd);
+  drawRow(2, startY + 2 * stepY, lblText, txtText);
+  drawRow(3, startY + 3 * stepY, lblCam, txtCam);
+  drawRow(4, startY + 4 * stepY, lblLang, valLang);
+  drawRow(5, startY + 5 * stepY, lblCloud, valCloud);
+  drawRow(6, startY + 6 * stepY, lblAspect, valAspect);
+  drawRow(7, startY + 7 * stepY, lblFps, valFps);
+
+  // Desenha as setas < e > nas 8 linhas
   if (ceClass) {
     FieldInfo* fImgP = vm.findField(ceClass, "p:Ljavax/microedition/lcdui/Image;");
     FieldInfo* fImgE = vm.findField(ceClass, "e:Ljavax/microedition/lcdui/Image;");
     ImageObj* imgP = (fImgP && fImgP->isStatic && fImgP->index >= 0 && fImgP->index < (int)ceClass->statics.size()) ? static_cast<ImageObj*>(ceClass->statics[fImgP->index].o) : nullptr;
     ImageObj* imgE = (fImgE && fImgE->isStatic && fImgE->index >= 0 && fImgE->index < (int)ceClass->statics.size()) ? static_cast<ImageObj*>(ceClass->statics[fImgE->index].o) : nullptr;
-    for (int row = 0; row < 6; ++row) {
-      if (imgP) g->drawImage(imgP, n2 + 42, n3 + row * 20, 20);
-      if (imgE) g->drawImage(imgE, n2 + 92, n3 + row * 20, 20);
+    for (int row = 0; row < 8; ++row) {
+      if (imgP) g->drawImage(imgP, n2 + 42, startY + row * stepY, 20);
+      if (imgE) g->drawImage(imgE, n2 + 92, startY + row * stepY, 20);
     }
   }
 }

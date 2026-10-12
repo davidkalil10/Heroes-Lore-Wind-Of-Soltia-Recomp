@@ -27,6 +27,10 @@ public:
   static void toggleBezel();
   static void toggleFps();
   static void toggleAspect(VM* vm = nullptr);
+  static void nextAspect(VM* vm = nullptr);
+  static void prevAspect(VM* vm = nullptr);
+  static int getAspectMode();
+  static void setAspectMode(int mode, VM* vm = nullptr);
   static void updateViewport(VM& vm);
   static void toggleFullscreen();
   static void showOsdMessage(const std::string& msg);

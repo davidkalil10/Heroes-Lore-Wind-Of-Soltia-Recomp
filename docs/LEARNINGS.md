@@ -716,6 +716,28 @@ Fonte: `heroes_lore_modern/PROJECT_KNOWLEDGE_BACKUP.md`
     3. **Mobile Landscape (Horizontal Ultrawide, 2400x1080):** Largura proporcional à altura da tela (`winH * 1.05f`), gerando proporção áurea equilibrada de ~1134x580 em 1080p móvel e acabando com a sensação de "faixa achatada".
     4. **Limpeza de Atalhos no Touch:** No Android touch, os botões exibem rótulos limpos (`ATUALIZAR` e `CANCELAR`), eliminando a poluição visual de `[ TOQUE ]`. No Switch, exibem os botões nativos `( A )` e `( B )`. No PC Desktop, exibem `[ A / ENTER ]` e `[ ESC / B ]`.
     5. **Botão Fechar [X] no Cabeçalho:** Adicionado botão dedicado de fechar com hit-test no topo direito, permitindo descarte rápido via touch.
-    6. **Suporte a 4 Idiomas:** Todas as mensagens do atualizador agora utilizam a matriz de localização multilíngue (Português, Inglês, Italiano e Espanhol).
+    6. **Suporte a 4 Idiomas:** Todas as mensagens do atualizador agora utilizam a matriz de localização multilíngue (Português, Inglês, Italiano e Espanhol).## Sessão 29 (Migração de Aspect Ratio e FPS para o Menu de Opções e Proporção Automática Dinâmica)
 
+- **Limpeza do Overlay Touch e Integração ao Menu de Opções Nativo (`be.class`):**
+  - *Contexto:* Os botões virtuais táteis de proporção (16:9) e taxa de quadros (FPS) ficavam no canto inferior direito da tela em smartphones e Switch, poluindo a visualização e podendo ser acionados acidentalmente durante o combate.
+  - *Solução:*
+    1. Removidos os botões virtuais `KEY_TOGGLE_TOUCH_ASPECT` e `KEY_TOGGLE_TOUCH_FPS` do `calculateLayout()` tanto no modo retrato quanto paisagem. O rodapé direito agora fica 100% limpo e desobstruído.
+    2. Expandido o menu de opções (`be.a:(II)Z` e `be.a:(Ljavax/microedition/lcdui/Graphics;II)V`) de 6 para 8 itens (`cb.var_byte_a = 8`):
+       - Item 0: Áudio / Som (Ligado / Desligado)
+       - Item 1: Jogo (Velocidade: Lento / Normal / Rápido)
+       - Item 2: Textos (Fala: Normal / Rápido)
+       - Item 3: Câmera (Ligada / Desligada)
+       - Item 4: Idioma (PT-BR, English, Italiano, Español)
+       - Item 5: Nuvem (Google Drive Cloud Save)
+       - Item 6: Tela / Aspect Ratio (Auto, 3:4, 16:9)
+       - Item 7: Taxa de Quadros / FPS (15 FPS, 30 FPS)
+    3. Ajustado o espaçamento vertical entre as linhas para `stepY = 18` iniciando em `startY = n3 - 6`, permitindo que todas as 8 linhas caibam com margem segura de mais de 30px dentro do popup modal in-game de 213px de altura.
+    4. Setas indicadoras `<` e `>` foram expandidas para cobrir as 8 opções com alinhamento pixel-perfect.
 
+- **Sistema Triplo de Proporção de Tela com Detecção Automática (`AspectMode`):**
+  - *Três Modos Oficiais:*
+    - `ASPECT_AUTO = 0` (Default): O motor monitora continuamente a orientação da janela/dispositivo (`winW >= winH` -> 16:9 Widescreen; `winH > winW` -> 3:4 Original com Molduras). Se o jogador girar o smartphone ou alternar a orientação TATE no Switch, a resolução interna e as variáveis do motor J2ME se adaptam dinamicamente em tempo de execução sem travar.
+    - `ASPECT_ORIGINAL = 1`: Força a proporção 3:4 original (240x320) com molduras temáticas (Soltia Ancestral / Ardósia / Preto).
+    - `ASPECT_WIDESCREEN = 2`: Força a expansão de viewport widescreen 16:9 (568x320) com maior campo de visão de mapa.
+  - *Persistência:* Salvo no arquivo `hl_settings.ini` via chave `aspect_mode=0|1|2`.
+  - *Atalhos Mantidos:* Atalhos de gamepad (SELECT + START, botão GUIDE) e de teclado (F7, F10) agora ciclam suavemente entre as 3 opções (`Auto` -> `3:4` -> `16:9` -> `Auto`), exibindo a respectiva mensagem OSD.
