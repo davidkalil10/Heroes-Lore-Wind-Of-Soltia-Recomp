@@ -699,3 +699,23 @@ Fonte: `heroes_lore_modern/PROJECT_KNOWLEDGE_BACKUP.md`
     - Em 720p (Windows / Switch), a escala se mantém em `1.0f`, preservando 100% da estética aprovada no desktop.
     - Em 1080p móvel (Android), a escala sobe para `~1.72f`, elevando o título para ~43px, botões para ~90px táteis, e cartões para ~136px de altura, atingindo paridade visual exata com os mockups gerados pelo usuário. Em modo paisagem ultrawide (2400x1080), a largura do modal expande até 70% da tela (~1680px), eliminando o aspecto de "caixa espremida".
 
+## Sessão 28 (Alinhamento Tipográfico e Redimensionamento Responsivo do Auto-Updater OTA Multiplataforma - v1.2.2)
+- **Causa Raiz de Textos Tortos / Deslocados para a Direita no Modal de Atualização:**
+  - *Diagnóstico:* Em todas as plataformas (Android portrait/landscape, Nintendo Switch e PC), o usuário relatou que os textos da tela de atualização ficavam deslocados, fora de centralização ("além de torto"), e que atalhos em botões colidiam com a borda inferior.
+  - *Causa Raiz:* `Updater::drawModal` ainda utilizava a API legada `Platform::drawText(renderer, text, x, y, charW, charH, 255, stepX)` e media a largura do texto via `Platform::getTextWidth(text, charW, stepX)`. Como a largura do caractere (`charW = charH * 0.64f`) era enviada como primeiro argumento numérico e interpretada pela engine TrueType como `fontSize`, o cálculo de largura subestimava a extensão real do texto em ~36%. Ao calcular a coordenada inicial `x = box.x + (box.w - tw) / 2`, o texto começava dezenas de pixels à direita do centro e estourava a borda. Além disso, offsets fixos da fonte bitmap antiga (`+ 8`, `- charH + 1`, `+ 3`) empurravam os textos para baixo dos botões.
+  - *Solução Definitiva:*
+    1. Migração completa de todos os textos do atualizador para a tipografia vetorial TrueType com antialiasing linear e kerning: `Platform::drawTextColored(renderer, text, x, y, fontSize, r, g, b, a)` e medição exata via `Platform::getTextWidth(text, fontSize)`.
+    2. Como o mesmo valor exato de `fontSize` é utilizado na medição e na renderização, todas as strings ficam 100% centralizadas tanto no eixo X quanto no eixo Y.
+    3. Nos botões de duas linhas (Ação + Atalho de console/PC), implementado o cálculo de altura total e centralização composta (`int totalH = effFontSize + effScSize + 4; int ty1 = bRect.y + (bRect.h - totalH) / 2; int ty2 = ty1 + effFontSize + 4;`), eliminando o atalho colado na borda inferior.
+
+- **Harmonização de Escala e Eliminação de Janelas Monstruosas ou Esmagadas:**
+  - *Diagnóstico:* No Nintendo Switch e no PC, a janela modal ocupava quase 85% de toda a tela (`1088px` de largura em 720p), ficando gigante e desproporcional para um simples diálogo de confirmação. No celular, na vertical ficava estreita/esmagada com botões pequenos poluídos com `[ TOQUE ]`, e na horizontal virava uma faixa achatada espremida.
+  - *Solução Arquitetural:*
+    1. **Nintendo Switch e PC Desktop:** O modal agora é um diálogo nobre, focado e compacto: `modalW = std::clamp((int)(620.0f * scaleFactor), 540, (int)(winW * 0.65f))`. Em 720p nativo do Switch, ocupa exatamente 620x360 (~48% da largura útil), perfeitamente centralizado com backdrop escuro ao redor.
+    2. **Mobile Portrait (Vertical, 1080x2400):** Largura de 92% da tela (`winW * 0.92f`), cartões arejados e botões táteis altos de até 86px, confortáveis para os dedos.
+    3. **Mobile Landscape (Horizontal Ultrawide, 2400x1080):** Largura proporcional à altura da tela (`winH * 1.05f`), gerando proporção áurea equilibrada de ~1134x580 em 1080p móvel e acabando com a sensação de "faixa achatada".
+    4. **Limpeza de Atalhos no Touch:** No Android touch, os botões exibem rótulos limpos (`ATUALIZAR` e `CANCELAR`), eliminando a poluição visual de `[ TOQUE ]`. No Switch, exibem os botões nativos `( A )` e `( B )`. No PC Desktop, exibem `[ A / ENTER ]` e `[ ESC / B ]`.
+    5. **Botão Fechar [X] no Cabeçalho:** Adicionado botão dedicado de fechar com hit-test no topo direito, permitindo descarte rápido via touch.
+    6. **Suporte a 4 Idiomas:** Todas as mensagens do atualizador agora utilizam a matriz de localização multilíngue (Português, Inglês, Italiano e Espanhol).
+
+

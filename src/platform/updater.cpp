@@ -735,6 +735,7 @@ static bool copyFile(const std::string& src, const std::string& dst) {
 static SDL_Rect s_modalRect = { 0, 0, 0, 0 };
 static SDL_Rect s_btnConfirmRect = { 0, 0, 0, 0 };
 static SDL_Rect s_btnCancelRect = { 0, 0, 0, 0 };
+static SDL_Rect s_btnCloseX = { 0, 0, 0, 0 };
 
 #if defined(__SWITCH__)
 static std::string resolveSwitchNroPath() {
@@ -992,6 +993,10 @@ bool Updater::isPromptActive() { return s_promptActive; }
 void Updater::showPrompt() { s_promptActive = true; }
 void Updater::dismissPrompt() {
   s_promptActive = false;
+  s_btnConfirmRect = { 0, 0, 0, 0 };
+  s_btnCancelRect = { 0, 0, 0, 0 };
+  s_btnCloseX = { 0, 0, 0, 0 };
+  s_modalRect = { 0, 0, 0, 0 };
   if (s_state == UpdateState::UPDATE_AVAILABLE || s_state == UpdateState::CHECK_FAILED) {
     s_state = UpdateState::IDLE;
   }
@@ -1051,6 +1056,10 @@ void Updater::handleClick(int x, int y) {
     dismissPrompt();
     return;
   }
+  if (s_btnCloseX.w > 0 && SDL_PointInRect(&pt, &s_btnCloseX)) {
+    dismissPrompt();
+    return;
+  }
   // Se clicou fora da janela do modal: fecha o aviso com segurança
   if (s_modalRect.w > 0 && !SDL_PointInRect(&pt, &s_modalRect)) {
     if (s_state == UpdateState::UPDATE_AVAILABLE || s_state == UpdateState::CHECK_FAILED || s_state == UpdateState::NO_UPDATE) {
@@ -1058,6 +1067,127 @@ void Updater::handleClick(int x, int y) {
       return;
     }
   }
+}
+
+enum class UpdateStr {
+  TITLE_AVAILABLE,
+  WARN_TITLE,
+  WARN_LINE1,
+  WARN_LINE2,
+  BTN_UPDATE,
+  BTN_CANCEL,
+  DOWNLOADING_TITLE,
+  WAIT_NOTE,
+  COMPLETE_TITLE,
+  COMPLETE_LINE1,
+  COMPLETE_LINE2,
+  BTN_RESTART,
+  ERROR_TITLE,
+  DEFAULT_ERROR,
+  BTN_CLOSE,
+  STR_COUNT
+};
+
+static const char* s_updateTranslations[(size_t)UpdateStr::STR_COUNT][4] = {
+  /* TITLE_AVAILABLE */ {
+    "ATUALIZAÇÃO DISPONÍVEL",
+    "UPDATE AVAILABLE",
+    "AGGIORNAMENTO DISPONIBILE",
+    "ACTUALIZACIÓN DISPONIBLE"
+  },
+  /* WARN_TITLE */ {
+    "AVISO IMPORTANTE:",
+    "IMPORTANT NOTICE:",
+    "AVVISO IMPORTANTE:",
+    "AVISO IMPORTANTE:"
+  },
+  /* WARN_LINE1 */ {
+    "Salve o jogo antes de prosseguir.",
+    "Save your game before proceeding.",
+    "Salva il gioco prima di procedere.",
+    "Guarda tu partida antes de continuar."
+  },
+  /* WARN_LINE2 */ {
+    "O aplicativo será reiniciado.",
+    "The application will restart.",
+    "L'applicazione verrà riavviata.",
+    "La aplicación se reiniciará."
+  },
+  /* BTN_UPDATE */ {
+    "ATUALIZAR",
+    "UPDATE",
+    "AGGIORNA",
+    "ACTUALIZAR"
+  },
+  /* BTN_CANCEL */ {
+    "CANCELAR",
+    "CANCEL",
+    "ANNULLA",
+    "CANCELAR"
+  },
+  /* DOWNLOADING_TITLE */ {
+    "BAIXANDO ATUALIZAÇÃO",
+    "DOWNLOADING UPDATE",
+    "SCARICAMENTO IN CORSO",
+    "DESCARGANDO ACTUALIZACIÓN"
+  },
+  /* WAIT_NOTE */ {
+    "Aguarde... Não feche o jogo.",
+    "Please wait... Do not close the game.",
+    "Attendere... Non chiudere il gioco.",
+    "Espere... No cierre el juego."
+  },
+  /* COMPLETE_TITLE */ {
+    "ATUALIZAÇÃO CONCLUÍDA",
+    "UPDATE COMPLETE",
+    "AGGIORNAMENTO COMPLETATO",
+    "ACTUALIZACIÓN COMPLETADA"
+  },
+  /* COMPLETE_LINE1 */ {
+    "Arquivo instalado com sucesso!",
+    "File installed successfully!",
+    "File installato con successo!",
+    "¡Archivo instalado con éxito!"
+  },
+  /* COMPLETE_LINE2 */ {
+    "Reinicie para aplicar a nova versão.",
+    "Restart to apply the new version.",
+    "Riavvia per applicare la nuova versione.",
+    "Reinicia para aplicar la nueva versión."
+  },
+  /* BTN_RESTART */ {
+    "REINICIAR",
+    "RESTART",
+    "RIAVVIA",
+    "REINICIAR"
+  },
+  /* ERROR_TITLE */ {
+    "AVISO DE ATUALIZAÇÃO",
+    "UPDATE NOTICE",
+    "AVVISO DI AGGIORNAMENTO",
+    "AVISO DE ACTUALIZACIÓN"
+  },
+  /* DEFAULT_ERROR */ {
+    "Não foi possível concluir a atualização.",
+    "Could not complete update.",
+    "Impossibile completare l'aggiornamento.",
+    "No se pudo completar la actualización."
+  },
+  /* BTN_CLOSE */ {
+    "FECHAR",
+    "CLOSE",
+    "CHIUDI",
+    "CERRAR"
+  }
+};
+
+static std::string tr(UpdateStr id) {
+  int lIdx = 0; // 0: pt, 1: en, 2: it, 3: es
+  std::string cur = Platform::getCurrentLanguage();
+  if (cur == "en") lIdx = 1;
+  else if (cur == "it") lIdx = 2;
+  else if (cur == "es") lIdx = 3;
+  return s_updateTranslations[(size_t)id][lIdx];
 }
 
 // Renderização gráfica nobre da janela modal de atualização (Soltia Theme)
@@ -1068,47 +1198,82 @@ void Updater::drawModal(SDL_Renderer* renderer, int winW, int winH) {
 
   // 1. Escurecimento translúcido do fundo (Backdrop)
   SDL_Rect fullScreen = { 0, 0, winW, winH };
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 215);
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 205);
   SDL_RenderFillRect(renderer, &fullScreen);
 
-  // 2. Caixa Modal Proporcional e Responsiva por Resolução / Orientação
+  // 2. Parâmetros de Dispositivo e Orientação
   bool isPortrait = (winH > winW);
+#if defined(__ANDROID__)
+  bool isMobile = true;
+#else
+  bool isMobile = false;
+#endif
 
-  // Escala responsiva aprimorada para Mobile (High-DPI portrait/landscape), Switch e PC
-  float uiScale = isPortrait ? std::clamp((float)winW / 300.0f, 1.3f, 3.4f)
-                             : std::clamp((float)winH / 360.0f, 1.1f, 2.3f);
+  // Escala Dinâmica Proporcional (Mesmo algoritmo calibrado do Cloud Save)
+  float refDim = (float)std::min(winW, winH);
+  float scaleFactor = std::max(0.85f, refDim / 720.0f);
+  if (isMobile) {
+    scaleFactor *= 1.15f;
+  }
 
-  int modalW = isPortrait ? std::clamp((int)(winW * 0.94f), 280, 1100)
-                          : std::clamp((int)(winW * 0.85f), 480, 1300);
+  // Largura Proporcional do Modal:
+  // - Portrait Mobile: 92% da largura útil da tela (espaçoso e agradável)
+  // - Landscape Mobile: proporcional à altura (winH * 1.05f), evitando o formato achatado
+  // - Switch e PC Desktop: janela compacta, nobre e focada (entre 580px e 640px em 720p; ~900px em 1080p)
+  int modalW;
+  if (isPortrait) {
+    modalW = (int)(winW * 0.92f);
+  } else {
+    if (isMobile) {
+      modalW = std::clamp((int)(winH * 1.05f), 640, 1150);
+    } else {
+      modalW = std::clamp((int)(620.0f * scaleFactor), 540, (int)(winW * 0.65f));
+    }
+  }
 
-  // Tipografia e Botões Proporcionais e Confortáveis para Touch e Display
-  int charH = std::clamp((int)(22.0f * uiScale), 18, 56);
-  int charW = (int)(charH * 0.64f);
-  int stepX = (int)(charW * 0.68f);
+  // Tipografia Vetorial Nítida
+  int titleFontSize    = (int)(24.0f * scaleFactor);
+  int headerH          = (int)(54.0f * scaleFactor);
+  int badgeFontSize    = (int)(20.0f * scaleFactor);
+  int warnTitleSize    = (int)(18.0f * scaleFactor);
+  int bodyFontSize     = (int)(16.5f * scaleFactor);
+  int subFontSize      = (int)(15.0f * scaleFactor);
+  int btnFontSize      = (int)(19.0f * scaleFactor);
+  int shortcutFontSize = (int)(13.5f * scaleFactor);
 
-  int smallCharH = std::clamp((int)(16.0f * uiScale), 14, 42);
-  int smallCharW = (int)(smallCharH * 0.64f);
-  int smallStepX = (int)(smallCharW * 0.68f);
+  int padX = (int)(22.0f * scaleFactor);
+  int contentW = modalW - padX * 2;
+  int btnH = (int)(50.0f * scaleFactor);
+  int btnGap = (int)(14.0f * scaleFactor);
 
-  int headerH = std::clamp((int)(48.0f * uiScale), 40, 96);
-  int btnH    = std::clamp((int)(48.0f * uiScale), 42, 96);
-  int borderPad = 6;
+  // Atalhos por Plataforma (Mobile Touch limpo / Switch Joy-Con / PC)
+  std::string scConfirm = "";
+  std::string scCancel  = "";
+#if defined(__SWITCH__)
+  scConfirm = "( A )";
+  scCancel  = "( B )";
+#elif !defined(__ANDROID__)
+  if (!isMobile) {
+    scConfirm = "[ A / ENTER ]";
+    scCancel  = "[ ESC / B ]";
+  }
+#endif
 
   // Cálculo Dinâmico de Altura (Content-Fitted)
-  int neededH = headerH + (int)(16.0f * uiScale);
+  int neededH = headerH + (int)(18.0f * scaleFactor);
 
   if (s_state == UpdateState::UPDATE_AVAILABLE || s_state == UpdateState::CONFIRM_PROMPT) {
-    int badgeH = std::clamp((int)(charH + 14.0f * uiScale), 30, 60);
-    int noteH = std::clamp((int)(charH * 3 + 28.0f * uiScale), 85, 220);
-    neededH += badgeH + (int)(14.0f * uiScale) + noteH + (int)(18.0f * uiScale) + btnH + (int)(22.0f * uiScale);
+    int badgeH = (int)(38.0f * scaleFactor);
+    int noteH = (int)(warnTitleSize + bodyFontSize * 2 + 42.0f * scaleFactor);
+    neededH += badgeH + (int)(14.0f * scaleFactor) + noteH + (int)(18.0f * scaleFactor) + btnH + (int)(22.0f * scaleFactor);
   } else if (s_state == UpdateState::DOWNLOADING) {
-    int barH = std::clamp((int)(26.0f * uiScale), 22, 48);
-    neededH += charH + (int)(14.0f * uiScale) + barH + (int)(12.0f * uiScale) + charH + (int)(14.0f * uiScale) + smallCharH + (int)(22.0f * uiScale);
+    int barH = (int)(26.0f * scaleFactor);
+    neededH += bodyFontSize + (int)(14.0f * scaleFactor) + barH + (int)(12.0f * scaleFactor) + bodyFontSize + (int)(12.0f * scaleFactor) + subFontSize + (int)(24.0f * scaleFactor);
   } else if (s_state == UpdateState::RESTART_READY || s_state == UpdateState::DOWNLOAD_COMPLETE) {
-    neededH += charH + (int)(14.0f * uiScale) + charH + (int)(18.0f * uiScale) + btnH + (int)(22.0f * uiScale);
+    neededH += bodyFontSize + (int)(12.0f * scaleFactor) + bodyFontSize + (int)(20.0f * scaleFactor) + btnH + (int)(24.0f * scaleFactor);
   } else {
-    // CHECK_FAILED ou DOWNLOAD_FAILED
-    neededH += charH + (int)(20.0f * uiScale) + btnH + (int)(22.0f * uiScale);
+    // Falha / Erro
+    neededH += bodyFontSize + (int)(24.0f * scaleFactor) + btnH + (int)(24.0f * scaleFactor);
   }
 
   int maxH = (int)(winH * 0.94f);
@@ -1119,146 +1284,183 @@ void Updater::drawModal(SDL_Renderer* renderer, int winW, int winH) {
 
   // Sombra suave da caixa
   SDL_Rect shadow = { modalX + 6, modalY + 6, modalW, modalH };
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 180);
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 170);
   SDL_RenderFillRect(renderer, &shadow);
 
   // Fundo ardósia nobre de Soltia
   SDL_Rect box = { modalX, modalY, modalW, modalH };
-  SDL_SetRenderDrawColor(renderer, 14, 18, 26, 252);
+  SDL_SetRenderDrawColor(renderer, 15, 20, 30, 252);
   SDL_RenderFillRect(renderer, &box);
 
   // Borda externa de aço
-  SDL_SetRenderDrawColor(renderer, 55, 75, 100, 255);
+  SDL_SetRenderDrawColor(renderer, 50, 70, 95, 255);
   SDL_RenderDrawRect(renderer, &box);
 
   // Filete interno em ouro nobre
+  int borderPad = 4;
   SDL_Rect goldBorder = { modalX + borderPad, modalY + borderPad, modalW - borderPad * 2, modalH - borderPad * 2 };
-  SDL_SetRenderDrawColor(renderer, 195, 155, 60, 255);
+  SDL_SetRenderDrawColor(renderer, 190, 150, 60, 220);
   SDL_RenderDrawRect(renderer, &goldBorder);
 
-  // Rebites de bronze nos 4 cantos
-  int rSize = 6;
-  SDL_SetRenderDrawColor(renderer, 225, 185, 80, 255);
-  SDL_Rect r1 = { modalX + 10, modalY + 10, rSize, rSize };
-  SDL_Rect r2 = { modalX + modalW - 10 - rSize, modalY + 10, rSize, rSize };
-  SDL_Rect r3 = { modalX + 10, modalY + modalH - 10 - rSize, rSize, rSize };
-  SDL_Rect r4 = { modalX + modalW - 10 - rSize, modalY + modalH - 10 - rSize, rSize, rSize };
-  SDL_RenderFillRect(renderer, &r1);
-  SDL_RenderFillRect(renderer, &r2);
-  SDL_RenderFillRect(renderer, &r3);
-  SDL_RenderFillRect(renderer, &r4);
-
   // Faixa de cabeçalho proporcional
-  SDL_Rect headerBox = { modalX + 8, modalY + 8, modalW - 16, headerH };
-  SDL_SetRenderDrawColor(renderer, 22, 28, 40, 255);
+  SDL_Rect headerBox = { modalX + 4, modalY + 4, modalW - 8, headerH };
+  SDL_SetRenderDrawColor(renderer, 24, 34, 52, 255);
   SDL_RenderFillRect(renderer, &headerBox);
-  SDL_SetRenderDrawColor(renderer, 195, 155, 60, 200);
+  SDL_SetRenderDrawColor(renderer, 190, 150, 60, 200);
   SDL_RenderDrawLine(renderer, headerBox.x, headerBox.y + headerH, headerBox.x + headerBox.w, headerBox.y + headerH);
 
-  int curY = modalY + headerH + (int)(16.0f * uiScale);
+  // Botão Fechar [X] no Cabeçalho (Confortável para touch no celular)
+  if (s_state != UpdateState::DOWNLOADING) {
+    int closeSize = headerH - (int)(16.0f * scaleFactor);
+    if (closeSize < 24) closeSize = 24;
+    s_btnCloseX = { modalX + modalW - closeSize - (int)(10.0f * scaleFactor), modalY + (headerH - closeSize) / 2, closeSize, closeSize };
+    SDL_SetRenderDrawColor(renderer, 38, 48, 68, 220);
+    SDL_RenderFillRect(renderer, &s_btnCloseX);
+    SDL_SetRenderDrawColor(renderer, 110, 130, 165, 255);
+    SDL_RenderDrawRect(renderer, &s_btnCloseX);
 
-  // Legendas de atalhos por plataforma
-#if defined(__SWITCH__)
-  std::string scConfirm = "[ BOTAO A ]";
-  std::string scCancel  = "[ BOTAO B ]";
-#elif defined(__ANDROID__)
-  std::string scConfirm = "[ TOQUE ]";
-  std::string scCancel  = "[ TOQUE ]";
-#else
-  std::string scConfirm = "[ A / ENTER ]";
-  std::string scCancel  = "[ B / ESC ]";
-#endif
+    std::string xGlyph = "X";
+    int xw = Platform::getTextWidth(xGlyph, subFontSize);
+    Platform::drawTextColored(renderer, xGlyph, s_btnCloseX.x + (closeSize - xw) / 2,
+                              s_btnCloseX.y + (closeSize - subFontSize) / 2, subFontSize, 215, 225, 245, 255);
+  } else {
+    s_btnCloseX = { 0, 0, 0, 0 };
+  }
+
+  int curY = modalY + headerH + (int)(16.0f * scaleFactor);
+
+  // Helper de Botão Moderno
+  auto drawModernBtn = [&](const std::string& bTitle, const std::string& bSc, const SDL_Rect& bRect,
+                           SDL_Color bg, SDL_Color border) {
+    SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, 255);
+    SDL_RenderFillRect(renderer, &bRect);
+
+    // Chanfro superior
+    SDL_SetRenderDrawColor(renderer, std::min(255, bg.r + 35), std::min(255, bg.g + 35), std::min(255, bg.b + 35), 255);
+    SDL_RenderDrawLine(renderer, bRect.x + 1, bRect.y + 1, bRect.x + bRect.w - 2, bRect.y + 1);
+
+    // Chanfro inferior
+    SDL_SetRenderDrawColor(renderer, bg.r / 2, bg.g / 2, bg.b / 2, 255);
+    SDL_RenderDrawLine(renderer, bRect.x + 1, bRect.y + bRect.h - 1, bRect.x + bRect.w - 2, bRect.y + bRect.h - 1);
+
+    // Borda
+    SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, 255);
+    SDL_RenderDrawRect(renderer, &bRect);
+
+    int effFontSize = btnFontSize;
+    int tw = Platform::getTextWidth(bTitle, effFontSize);
+    if (tw > bRect.w - (int)(16.0f * scaleFactor) && bRect.w > 20) {
+      effFontSize = std::max(12, (int)(effFontSize * (float)(bRect.w - (int)(16.0f * scaleFactor)) / (float)tw));
+      tw = Platform::getTextWidth(bTitle, effFontSize);
+    }
+
+    if (bSc.empty()) {
+      int tx = bRect.x + (bRect.w - tw) / 2;
+      int ty = bRect.y + (bRect.h - effFontSize) / 2;
+      Platform::drawTextColored(renderer, bTitle, tx, ty, effFontSize, 255, 255, 255, 255);
+    } else {
+      int effScSize = shortcutFontSize;
+      int scw = Platform::getTextWidth(bSc, effScSize);
+      int totalH = effFontSize + effScSize + 4;
+      int ty1 = bRect.y + (bRect.h - totalH) / 2;
+      int ty2 = ty1 + effFontSize + 4;
+
+      int tx1 = bRect.x + (bRect.w - tw) / 2;
+      Platform::drawTextColored(renderer, bTitle, tx1, ty1, effFontSize, 255, 255, 255, 255);
+
+      int tx2 = bRect.x + (bRect.w - scw) / 2;
+      Platform::drawTextColored(renderer, bSc, tx2, ty2, effScSize, 205, 220, 240, 220);
+    }
+  };
 
   if (s_state == UpdateState::UPDATE_AVAILABLE || s_state == UpdateState::CONFIRM_PROMPT) {
     // Título do Cabeçalho
-    std::string title = "ATUALIZACAO DISPONIVEL";
-    int tw = Platform::getTextWidth(title, charW, stepX);
-    Platform::drawText(renderer, title, modalX + (modalW - tw) / 2, modalY + (headerH - charH) / 2 + 8, charW, charH, 255, stepX);
+    std::string title = tr(UpdateStr::TITLE_AVAILABLE);
+    int tw = Platform::getTextWidth(title, titleFontSize);
+    Platform::drawTextColored(renderer, title, modalX + (modalW - tw) / 2, modalY + (headerH - titleFontSize) / 2 + 2,
+                              titleFontSize, 240, 205, 110, 255);
 
-    // Faixa/Badge de Versão (Estilo Pill)
-    int badgeW = std::clamp((int)(modalW * 0.72f), 220, 540);
-    int badgeH = std::clamp((int)(charH + 14.0f * uiScale), 30, 60);
+    // Faixa/Badge de Versão (Estilo Pill Elegante)
+    std::string vLine = std::string(HL_VERSION_TAG) + "  ->  " + s_releaseInfo.tagName;
+    int vw = Platform::getTextWidth(vLine, badgeFontSize);
+    int badgeW = std::min(contentW, vw + (int)(36.0f * scaleFactor));
+    int badgeH = (int)(36.0f * scaleFactor);
     SDL_Rect verBox = { modalX + (modalW - badgeW) / 2, curY, badgeW, badgeH };
-    SDL_SetRenderDrawColor(renderer, 18, 28, 42, 255);
+
+    SDL_SetRenderDrawColor(renderer, 18, 28, 44, 255);
     SDL_RenderFillRect(renderer, &verBox);
-    SDL_SetRenderDrawColor(renderer, 70, 130, 190, 255);
+    SDL_SetRenderDrawColor(renderer, 65, 135, 195, 255);
     SDL_RenderDrawRect(renderer, &verBox);
 
-    std::string vLine = std::string(HL_VERSION_TAG) + " -> " + s_releaseInfo.tagName;
-    int vw = Platform::getTextWidth(vLine, charW, stepX);
-    Platform::drawText(renderer, vLine, verBox.x + (badgeW - vw) / 2, verBox.y + (badgeH - charH) / 2, charW, charH, 255, stepX);
-    curY += badgeH + (int)(14.0f * uiScale);
+    Platform::drawTextColored(renderer, vLine, verBox.x + (badgeW - vw) / 2,
+                              verBox.y + (badgeH - badgeFontSize) / 2,
+                              badgeFontSize, 180, 225, 255, 255);
+    curY += badgeH + (int)(14.0f * scaleFactor);
 
     // Caixa de Alerta Âmbar de Salvamento
-    int noteW = modalW - 48;
-    int noteH = std::clamp((int)(charH * 3 + 28.0f * uiScale), 85, 220);
-    SDL_Rect noteBox = { modalX + 24, curY, noteW, noteH };
-    SDL_SetRenderDrawColor(renderer, 28, 22, 12, 235);
+    int noteW = contentW;
+    int noteH = (int)(warnTitleSize + bodyFontSize * 2 + 42.0f * scaleFactor);
+    SDL_Rect noteBox = { modalX + padX, curY, noteW, noteH };
+    SDL_SetRenderDrawColor(renderer, 28, 22, 14, 240);
     SDL_RenderFillRect(renderer, &noteBox);
-    SDL_SetRenderDrawColor(renderer, 175, 125, 40, 255);
+    SDL_SetRenderDrawColor(renderer, 185, 135, 45, 255);
     SDL_RenderDrawRect(renderer, &noteBox);
 
-    std::string a1 = "AVISO IMPORTANTE:";
-    std::string a2 = "Salve o jogo antes de prosseguir.";
-    std::string a3 = "O aplicativo sera reiniciado.";
-    int lineSpacing = charH + (int)(4.0f * uiScale);
-    int lineStartY = noteBox.y + (noteH - (lineSpacing * 2 + charH)) / 2;
+    // Filete decorativo dourado na esquerda
+    SDL_Rect noteBar = { noteBox.x, noteBox.y, (int)(4.0f * scaleFactor) + 1, noteBox.h };
+    SDL_SetRenderDrawColor(renderer, 240, 185, 60, 255);
+    SDL_RenderFillRect(renderer, &noteBar);
 
-    Platform::drawText(renderer, a1, noteBox.x + (noteW - Platform::getTextWidth(a1, charW, stepX)) / 2, lineStartY, charW, charH, 255, stepX);
-    Platform::drawText(renderer, a2, noteBox.x + (noteW - Platform::getTextWidth(a2, charW, stepX)) / 2, lineStartY + lineSpacing, charW, charH, 240, stepX);
-    Platform::drawText(renderer, a3, noteBox.x + (noteW - Platform::getTextWidth(a3, charW, stepX)) / 2, lineStartY + lineSpacing * 2, charW, charH, 240, stepX);
-    curY += noteH + (int)(18.0f * uiScale);
+    std::string a1 = tr(UpdateStr::WARN_TITLE);
+    std::string a2 = tr(UpdateStr::WARN_LINE1);
+    std::string a3 = tr(UpdateStr::WARN_LINE2);
+
+    int totalTextH = warnTitleSize + (int)(8.0f * scaleFactor) + bodyFontSize + (int)(4.0f * scaleFactor) + bodyFontSize;
+    int startY = noteBox.y + (noteBox.h - totalTextH) / 2;
+
+    int a1w = Platform::getTextWidth(a1, warnTitleSize);
+    Platform::drawTextColored(renderer, a1, noteBox.x + (noteW - a1w) / 2, startY, warnTitleSize, 255, 200, 75, 255);
+
+    startY += warnTitleSize + (int)(8.0f * scaleFactor);
+    int a2w = Platform::getTextWidth(a2, bodyFontSize);
+    Platform::drawTextColored(renderer, a2, noteBox.x + (noteW - a2w) / 2, startY, bodyFontSize, 240, 230, 220, 240);
+
+    startY += bodyFontSize + (int)(4.0f * scaleFactor);
+    int a3w = Platform::getTextWidth(a3, bodyFontSize);
+    Platform::drawTextColored(renderer, a3, noteBox.x + (noteW - a3w) / 2, startY, bodyFontSize, 255, 145, 125, 240);
+    curY += noteH + (int)(18.0f * scaleFactor);
 
     // Botões Interativos (Lado a Lado)
-    int btnMargin = (int)(18.0f * uiScale);
-    int btnGap = (int)(14.0f * uiScale);
-    int btnW = (modalW - (btnMargin * 2) - btnGap) / 2;
-    int by = modalY + modalH - btnH - (int)(18.0f * uiScale);
+    int btnW = (contentW - btnGap) / 2;
+    int by = modalY + modalH - btnH - (int)(18.0f * scaleFactor);
     if (by < curY) by = curY;
 
-    s_btnConfirmRect = { modalX + btnMargin, by, btnW, btnH };
-    s_btnCancelRect = { modalX + btnMargin + btnW + btnGap, by, btnW, btnH };
+    s_btnConfirmRect = { modalX + padX, by, btnW, btnH };
+    s_btnCancelRect = { modalX + padX + btnW + btnGap, by, btnW, btnH };
 
     // 1. Botão Confirmar (Ciano / Ouro Real)
-    SDL_SetRenderDrawColor(renderer, 18, 55, 80, 255);
-    SDL_RenderFillRect(renderer, &s_btnConfirmRect);
-    SDL_SetRenderDrawColor(renderer, 45, 190, 240, 255);
-    SDL_RenderDrawRect(renderer, &s_btnConfirmRect);
-    SDL_Rect cBorder = { s_btnConfirmRect.x + 2, s_btnConfirmRect.y + 2, s_btnConfirmRect.w - 4, s_btnConfirmRect.h - 4 };
-    SDL_SetRenderDrawColor(renderer, 195, 155, 60, 180);
-    SDL_RenderDrawRect(renderer, &cBorder);
-
-    std::string bt1 = "ATUALIZAR";
-    Platform::drawText(renderer, bt1, s_btnConfirmRect.x + (btnW - Platform::getTextWidth(bt1, charW, stepX)) / 2, by + (btnH / 2) - charH + 1, charW, charH, 255, stepX);
-    Platform::drawText(renderer, scConfirm, s_btnConfirmRect.x + (btnW - Platform::getTextWidth(scConfirm, smallCharW, smallStepX)) / 2, by + (btnH / 2) + 3, smallCharW, smallCharH, 210, smallStepX);
+    drawModernBtn(tr(UpdateStr::BTN_UPDATE), scConfirm, s_btnConfirmRect,
+                  { 18, 55, 80, 255 }, { 45, 190, 240, 255 });
 
     // 2. Botão Cancelar (Ardósia Carmesim)
-    SDL_SetRenderDrawColor(renderer, 48, 20, 26, 255);
-    SDL_RenderFillRect(renderer, &s_btnCancelRect);
-    SDL_SetRenderDrawColor(renderer, 175, 65, 75, 255);
-    SDL_RenderDrawRect(renderer, &s_btnCancelRect);
-    SDL_Rect rBorder = { s_btnCancelRect.x + 2, s_btnCancelRect.y + 2, s_btnCancelRect.w - 4, s_btnCancelRect.h - 4 };
-    SDL_SetRenderDrawColor(renderer, 95, 55, 65, 180);
-    SDL_RenderDrawRect(renderer, &rBorder);
-
-    std::string bt2 = "CANCELAR";
-    Platform::drawText(renderer, bt2, s_btnCancelRect.x + (btnW - Platform::getTextWidth(bt2, charW, stepX)) / 2, by + (btnH / 2) - charH + 1, charW, charH, 255, stepX);
-    Platform::drawText(renderer, scCancel, s_btnCancelRect.x + (btnW - Platform::getTextWidth(scCancel, smallCharW, smallStepX)) / 2, by + (btnH / 2) + 3, smallCharW, smallCharH, 210, smallStepX);
+    drawModernBtn(tr(UpdateStr::BTN_CANCEL), scCancel, s_btnCancelRect,
+                  { 48, 20, 26, 255 }, { 175, 65, 75, 255 });
 
   } else if (s_state == UpdateState::DOWNLOADING) {
-    std::string title = "BAIXANDO ATUALIZACAO";
-    int tw = Platform::getTextWidth(title, charW, stepX);
-    Platform::drawText(renderer, title, modalX + (modalW - tw) / 2, modalY + (headerH - charH) / 2 + 8, charW, charH, 255, stepX);
+    std::string title = tr(UpdateStr::DOWNLOADING_TITLE);
+    int tw = Platform::getTextWidth(title, titleFontSize);
+    Platform::drawTextColored(renderer, title, modalX + (modalW - tw) / 2, modalY + (headerH - titleFontSize) / 2 + 2,
+                              titleFontSize, 240, 205, 110, 255);
 
     std::string fLine = s_releaseInfo.assetName;
-    int fw = Platform::getTextWidth(fLine, charW, stepX);
-    Platform::drawText(renderer, fLine, modalX + (modalW - fw) / 2, curY, charW, charH, 240, stepX);
-    curY += charH + (int)(14.0f * uiScale);
+    int fw = Platform::getTextWidth(fLine, bodyFontSize);
+    Platform::drawTextColored(renderer, fLine, modalX + (modalW - fw) / 2, curY, bodyFontSize, 215, 230, 250, 240);
+    curY += bodyFontSize + (int)(14.0f * scaleFactor);
 
     // Barra de progresso gráfica
-    int barW = modalW - 48;
-    int barH = std::clamp((int)(26.0f * uiScale), 22, 48);
-    int barX = modalX + (modalW - barW) / 2;
+    int barW = contentW;
+    int barH = (int)(24.0f * scaleFactor);
+    int barX = modalX + padX;
     int barY = curY;
 
     SDL_Rect barBg = { barX, barY, barW, barH };
@@ -1274,81 +1476,70 @@ void Updater::drawModal(SDL_Renderer* renderer, int winW, int winH) {
       SDL_SetRenderDrawColor(renderer, 0, 215, 255, 255);
       SDL_RenderFillRect(renderer, &barFill);
     }
-    curY += barH + (int)(12.0f * uiScale);
+    curY += barH + (int)(12.0f * scaleFactor);
 
     char pBuf[64];
     float mbDown = (float)s_downloadedBytes.load() / (1024.0f * 1024.0f);
     float mbTotal = (float)s_totalBytes.load() / (1024.0f * 1024.0f);
     snprintf(pBuf, sizeof(pBuf), "%.1f MB / %.1f MB (%d%%)", mbDown, mbTotal, (int)(prog * 100.0f));
     std::string pStr = pBuf;
-    int pw = Platform::getTextWidth(pStr, charW, stepX);
-    Platform::drawText(renderer, pStr, modalX + (modalW - pw) / 2, curY, charW, charH, 255, stepX);
-    curY += charH + (int)(14.0f * uiScale);
+    int pw = Platform::getTextWidth(pStr, bodyFontSize);
+    Platform::drawTextColored(renderer, pStr, modalX + (modalW - pw) / 2, curY, bodyFontSize, 255, 255, 255, 255);
+    curY += bodyFontSize + (int)(12.0f * scaleFactor);
 
-    std::string wLine = "Aguarde... Nao feche o jogo.";
-    int ww = Platform::getTextWidth(wLine, smallCharW, smallStepX);
-    Platform::drawText(renderer, wLine, modalX + (modalW - ww) / 2, curY, smallCharW, smallCharH, 200, smallStepX);
+    std::string wLine = tr(UpdateStr::WAIT_NOTE);
+    int ww = Platform::getTextWidth(wLine, subFontSize);
+    Platform::drawTextColored(renderer, wLine, modalX + (modalW - ww) / 2, curY, subFontSize, 175, 190, 215, 200);
 
     s_btnConfirmRect = { 0, 0, 0, 0 };
     s_btnCancelRect = { 0, 0, 0, 0 };
 
   } else if (s_state == UpdateState::RESTART_READY || s_state == UpdateState::DOWNLOAD_COMPLETE) {
-    std::string title = "ATUALIZACAO CONCLUIDA";
-    int tw = Platform::getTextWidth(title, charW, stepX);
-    Platform::drawText(renderer, title, modalX + (modalW - tw) / 2, modalY + (headerH - charH) / 2 + 8, charW, charH, 255, stepX);
+    std::string title = tr(UpdateStr::COMPLETE_TITLE);
+    int tw = Platform::getTextWidth(title, titleFontSize);
+    Platform::drawTextColored(renderer, title, modalX + (modalW - tw) / 2, modalY + (headerH - titleFontSize) / 2 + 2,
+                              titleFontSize, 240, 205, 110, 255);
 
-    std::string s1 = "Arquivo instalado com sucesso!";
-    int sw1 = Platform::getTextWidth(s1, charW, stepX);
-    Platform::drawText(renderer, s1, modalX + (modalW - sw1) / 2, curY, charW, charH, 255, stepX);
-    curY += charH + (int)(12.0f * uiScale);
+    std::string s1 = tr(UpdateStr::COMPLETE_LINE1);
+    int sw1 = Platform::getTextWidth(s1, bodyFontSize);
+    Platform::drawTextColored(renderer, s1, modalX + (modalW - sw1) / 2, curY, bodyFontSize, 255, 255, 255, 255);
+    curY += bodyFontSize + (int)(12.0f * scaleFactor);
 
-    std::string s2 = "Reinicie para aplicar a nova versao.";
-    int sw2 = Platform::getTextWidth(s2, charW, stepX);
-    Platform::drawText(renderer, s2, modalX + (modalW - sw2) / 2, curY, charW, charH, 220, stepX);
-    curY += charH + (int)(18.0f * uiScale);
+    std::string s2 = tr(UpdateStr::COMPLETE_LINE2);
+    int sw2 = Platform::getTextWidth(s2, bodyFontSize);
+    Platform::drawTextColored(renderer, s2, modalX + (modalW - sw2) / 2, curY, bodyFontSize, 200, 220, 245, 220);
+    curY += bodyFontSize + (int)(18.0f * scaleFactor);
 
-    // Botão de Reinício (Verde Esmeralda)
-    int btnW = std::clamp((int)(modalW * 0.58f), 180, 420);
-    int by = modalY + modalH - btnH - (int)(18.0f * uiScale);
+    int btnW = std::clamp((int)(contentW * 0.70f), 180, 420);
+    int by = modalY + modalH - btnH - (int)(18.0f * scaleFactor);
     if (by < curY) by = curY;
     int btnX = modalX + (modalW - btnW) / 2;
     s_btnConfirmRect = { btnX, by, btnW, btnH };
     s_btnCancelRect = { 0, 0, 0, 0 };
 
-    SDL_SetRenderDrawColor(renderer, 18, 68, 38, 255);
-    SDL_RenderFillRect(renderer, &s_btnConfirmRect);
-    SDL_SetRenderDrawColor(renderer, 45, 210, 110, 255);
-    SDL_RenderDrawRect(renderer, &s_btnConfirmRect);
-
-    std::string rText = "REINICIAR";
-    Platform::drawText(renderer, rText, btnX + (btnW - Platform::getTextWidth(rText, charW, stepX)) / 2, by + (btnH / 2) - charH + 1, charW, charH, 255, stepX);
-    Platform::drawText(renderer, scConfirm, btnX + (btnW - Platform::getTextWidth(scConfirm, smallCharW, smallStepX)) / 2, by + (btnH / 2) + 3, smallCharW, smallCharH, 210, smallStepX);
+    drawModernBtn(tr(UpdateStr::BTN_RESTART), scConfirm, s_btnConfirmRect,
+                  { 18, 68, 38, 255 }, { 45, 210, 110, 255 });
 
   } else if (s_state == UpdateState::CHECK_FAILED || s_state == UpdateState::DOWNLOAD_FAILED) {
-    std::string title = "AVISO DE ATUALIZACAO";
-    int tw = Platform::getTextWidth(title, charW, stepX);
-    Platform::drawText(renderer, title, modalX + (modalW - tw) / 2, modalY + (headerH - charH) / 2 + 8, charW, charH, 255, stepX);
+    std::string title = tr(UpdateStr::ERROR_TITLE);
+    int tw = Platform::getTextWidth(title, titleFontSize);
+    Platform::drawTextColored(renderer, title, modalX + (modalW - tw) / 2, modalY + (headerH - titleFontSize) / 2 + 2,
+                              titleFontSize, 240, 205, 110, 255);
 
-    std::string s1 = s_statusMessage.empty() ? "Nao foi possivel concluir a atualizacao." : s_statusMessage;
-    int sw1 = Platform::getTextWidth(s1, charW, stepX);
-    Platform::drawText(renderer, s1, modalX + (modalW - sw1) / 2, curY, charW, charH, 255, stepX);
-    curY += charH + (int)(18.0f * uiScale);
+    std::string s1 = s_statusMessage.empty() ? tr(UpdateStr::DEFAULT_ERROR) : s_statusMessage;
+    int sw1 = Platform::getTextWidth(s1, bodyFontSize);
+    Platform::drawTextColored(renderer, s1, modalX + (modalW - sw1) / 2, curY, bodyFontSize, 255, 255, 255, 255);
+    curY += bodyFontSize + (int)(18.0f * scaleFactor);
 
-    int btnW = std::clamp((int)(modalW * 0.45f), 160, 360);
-    int by = modalY + modalH - btnH - (int)(18.0f * uiScale);
+    int btnW = std::clamp((int)(contentW * 0.55f), 160, 360);
+    int by = modalY + modalH - btnH - (int)(18.0f * scaleFactor);
     if (by < curY) by = curY;
     int btnX = modalX + (modalW - btnW) / 2;
     s_btnCancelRect = { btnX, by, btnW, btnH };
     s_btnConfirmRect = { 0, 0, 0, 0 };
 
-    SDL_SetRenderDrawColor(renderer, 48, 20, 26, 255);
-    SDL_RenderFillRect(renderer, &s_btnCancelRect);
-    SDL_SetRenderDrawColor(renderer, 175, 65, 75, 255);
-    SDL_RenderDrawRect(renderer, &s_btnCancelRect);
-
-    std::string cText = "FECHAR";
-    Platform::drawText(renderer, cText, btnX + (btnW - Platform::getTextWidth(cText, charW, stepX)) / 2, by + (btnH / 2) - charH + 1, charW, charH, 255, stepX);
-    Platform::drawText(renderer, scCancel, btnX + (btnW - Platform::getTextWidth(scCancel, smallCharW, smallStepX)) / 2, by + (btnH / 2) + 3, smallCharW, smallCharH, 210, smallStepX);
+    drawModernBtn(tr(UpdateStr::BTN_CLOSE), scCancel, s_btnCancelRect,
+                  { 48, 20, 26, 255 }, { 175, 65, 75, 255 });
   }
 }
 

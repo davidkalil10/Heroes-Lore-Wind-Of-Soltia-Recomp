@@ -17,8 +17,8 @@ android {
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 34
-        versionCode 13
-        versionName "1.2.1"
+        versionCode 14
+        versionName "1.2.2"
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared", "-DCMAKE_BUILD_TYPE=Release"

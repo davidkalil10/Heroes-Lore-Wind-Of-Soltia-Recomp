@@ -186,6 +186,7 @@ _Ãšltima atualizaÃ§Ã£o: 2026-10-04_
 - **v1.1.1:** Passo 8 100% Concluído e Validado com Sucesso em Todas as Plataformas — Auto-updater OTA in-app confirmado e homologado no PC Desktop (extração silenciosa e isolada via CreateProcessA, atualização completa de assets e executável em diretórios com espaços), no Nintendo Switch (substituição no cartão SD sdmc:/ com liberação idempotente de RomFS e reinicialização atualizada via hbmenu) e no Android (instalação nativa via PackageInstaller).
 - **v1.2.0:** Suporte Oficial a Cloud Save Multiplataforma (Google Drive RFC 8628 Device Flow) e Seletor de 4 Idiomas em Tempo Real (PT-BR, EN, IT, ES).
 - **v1.2.1:** Engine de Tipografia Vetorial TrueType (stb_truetype + Inter-SemiBold) e Refatoração Moderna de Cloud Save — Integração de rasterizador TTF com antialiasing linear suave e kerning proporcional real substituindo a antiga fonte bitmap pixelada; suporte completo a acentos em PT-BR; layout responsivo reformulado para telas móveis de alta densidade (High-DPI / 1080p / 2400x1080) e console com cards empilhados no modo retrato e lado a lado no modo paisagem; botões táteis ampliados em grade 2x2 no mobile touch sem atalhos de teclado confusos; botão dedicado de fechar [X] no cabeçalho; e calibração de escala proporcional sem tetos restritivos.
+- **v1.2.2:** Alinhamento Tipográfico e Redimensionamento Responsivo do Auto-Updater OTA Multiplataforma — Migração integral do modal de atualização para a engine vetorial TrueType (Inter-SemiBold); resolução definitiva dos textos deslocados/tortos através da unificação do cálculo de largura e renderização com o mesmo fontSize; centralização matemática composta em botões de 2 linhas; redimensionamento responsivo equilibrado para Nintendo Switch e PC (~48% da largura útil em 620x360), eliminando a janela desproporcional anterior; proporção áurea equilibrada no Android landscape (2400x1080) e conforto visual no portrait (1080x2400) com botões táteis limpos de até 86px sem poluição de `[ TOQUE ]`; botão fechar [X] no cabeçalho; e suporte completo a 4 idiomas (PT-BR, EN, IT, ES).
 
 ## Próximos passos (Roadmap)
 - [x] Passo 8: Possibilidade de detecção de update disponível no github releases para atualizar o app diretamente via rede (concluído para todas as plataformas)
@@ -231,8 +232,7 @@ _Ãšltima atualizaÃ§Ã£o: 2026-10-04_
     - Estabilidade JNI no Android: despachador `runAsync` com ciclo de vida gerenciado do SDL e referência global (`NewGlobalRef`) para `SDLActivity.httpExecute`, evitando crashes de runtime no ART ao conectar.
     - Integrado ao Menu de Opções (`be.class`) na Tela de Título e no Pause In-Game como 6º item.
     - Atalho global de teclado via <kbd>F4</kbd>.
-- [ ] Passo 11: Melhoria no sistema de backups em nuvem, permitindo autosync antes de iniciar o jogo (Tela de Título) e antes de salvar o jogo (Pause In-Game).
-- [ ] Passo 12: Port Imersivo VR / Realidade Mista para Meta Quest (OpenXR, Voxel/Diorama 3D Tabletop & Primeira Pessoa 360°). Detalhado em [`docs/VR_QUEST_CONCEPT.md`](VR_QUEST_CONCEPT.md).
+- [ ] Passo 11: Port Imersivo VR / Realidade Mista para Meta Quest (OpenXR, Voxel/Diorama 3D Tabletop & Primeira Pessoa 360°). Detalhado em [`docs/VR_QUEST_CONCEPT.md`](VR_QUEST_CONCEPT.md).
 
 
 
