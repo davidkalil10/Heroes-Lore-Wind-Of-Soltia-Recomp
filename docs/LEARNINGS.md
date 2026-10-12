@@ -759,3 +759,22 @@ Fonte: `heroes_lore_modern/PROJECT_KNOWLEDGE_BACKUP.md`
      - Se o save `heroes_lore_save.json` já existir mas estiver localizado na raiz (ou fora da pasta dedicada), o sistema dispara automaticamente uma chamada `PATCH https://www.googleapis.com/drive/v3/files/{id}?addParents={folderId}&removeParents={oldParent}`.
      - O arquivo é movido para dentro da pasta `"Heroes Lore - Wind of Soltia"` preservando o mesmo ID de arquivo, data e integridade, limpando a raiz do Drive do usuário de forma 100% invisível e automática.
 
+## Sessão 31 (Otimização Ergonômica de Tela e Controles Virtuais no Modo Vertical)
+
+- **Eliminação de Sobreposição de Botões sobre a Tela e Diálogos no Modo Vertical (Android / Switch TATE):**
+  - *Diagnóstico:* Em smartphones modernos (19.5:9 e 20:9, ex: 1080x2400) e no Nintendo Switch em modo vertical (720x1280), a centralização do jogo 3:4 na altura da janela (`(winH - gameH) / 2`) deixava um vácuo preto desaproveitado no topo e posicionava o terço inferior do jogo diretamente sob o D-Pad e cluster de botões, cobrindo o protagonista, inimigos e especialmente caixas de diálogo / balões de fala dos NPCs. Além disso, o botão `R` no canto superior direito ficava distante do alcance confortável dos polegares.
+  - *Solução Arquitetural:*
+    1. **Elevação Inteligente da Tela do Jogo:**
+       - No modo retrato (`winH > winW`), a tela do jogo é subida para começar logo abaixo dos botões de sistema do topo com margem de segurança (`gameY = std::max(0, std::min(topLimit, (winH - gameH) / 2))`).
+       - Libera mais de 250 pixels de espaço 100% limpo na parte inferior do smartphone.
+    2. **Rebaixamento Confortável dos Controles Virtuais:**
+       - O centro do D-Pad e do cluster de botões de ação foi descido de `winH - winW * 0.42f` para `winH - winW * 0.31f`.
+       - Como o jogo subiu e os controles desceram, a sobreposição com o jogo, HUD e caixas de diálogo foi reduzida para praticamente ZERO em smartphones modernos.
+    3. **Botão `R BACK` no Cluster de Ação (Preservação Estrita do Arco Ergonômico):**
+       - Mantido 100% intacto o posicionamento relativo em arco dos botões clássicos (5 ATK no centro, 1 SKILL e 7 POT na coluna esquerda, 3 SKILL no topo, 9 ITEM no topo-direito).
+       - Criada nova textura circular `btn_rsk_round.rgba` (96px, círculo fosco com anel coral `(240, 110, 80)`, rótulo `"R"` e sub-rótulo `"BACK"`).
+       - Encaixado na base direita do cluster (`actX + r5 * 1.35f, actY + r5 * 1.15f`), espelhando perfeitamente o botão 7 POT e ficando diretamente abaixo de 9 ITEM, com alcance imediato do polegar direito para cancelar diálogos, fechar janelas e abrir status.
+    4. **Topo Simplificado e Elegante com 2 Pílulas:**
+       - Com a descida do `R`, o topo agora exibe apenas duas pílulas amplas e equilibradas: `[ MENU ]` à esquerda (26%) e `[ MAPA ]` à direita (74%).
+
+

@@ -451,6 +451,7 @@ def main():
         "btn_menu": make_pill_button("MENU", 240, 100, accent_color=(70, 130, 240)),
         "btn_map": make_pill_button("MAPA", 240, 100, accent_color=(0, 200, 255)),
         "btn_rsk": make_pill_button("R", 240, 100, accent_color=(240, 110, 80)),
+        "btn_rsk_round": make_round_button("R", "BACK", final_size=96, accent_color=(240, 110, 80)),
         "btn_prev": make_arrow_button("left", 108, accent_color=(0, 200, 255)),
         "btn_next": make_arrow_button("right", 108, accent_color=(0, 200, 255)),
         "btn_eye_open": make_eye_icon(96, False),

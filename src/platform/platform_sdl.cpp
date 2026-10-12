@@ -758,6 +758,7 @@ static SDL_Texture* s_texBtn9 = nullptr;
 static SDL_Texture* s_texBtnMenu = nullptr;
 static SDL_Texture* s_texBtnMap = nullptr;
 static SDL_Texture* s_texBtnRsk = nullptr;
+static SDL_Texture* s_texBtnRskRound = nullptr;
 static SDL_Texture* s_texBtnPrev = nullptr;
 static SDL_Texture* s_texBtnNext = nullptr;
 static SDL_Texture* s_texBtnEyeOpen = nullptr;
@@ -1052,6 +1053,7 @@ static void loadGamepadTextures() {
   s_texBtnMenu = loadRgbaTexture("btn_menu");
   s_texBtnMap = loadRgbaTexture("btn_map");
   s_texBtnRsk = loadRgbaTexture("btn_rsk");
+  s_texBtnRskRound = loadRgbaTexture("btn_rsk_round");
   s_texBtnPrev = loadRgbaTexture("btn_prev");
   s_texBtnNext = loadRgbaTexture("btn_next");
   s_texBtnEyeOpen = loadRgbaTexture("btn_eye_open");
@@ -1086,7 +1088,7 @@ static GamepadLayout calculateLayout(int winW, int winH) {
   layout.dpadR = 0;
 
   if (layout.isPortrait) {
-    // Modo Retrato (Smartphone em pé)
+    // Modo Retrato (Smartphone em pé / TATE)
     // O jogo ocupa a tela no maior tamanho possível mantendo a proporção exata 240x320
     float scaleW = (float)winW / 240.0f;
     float scaleH = (float)winH / 320.0f;
@@ -1094,14 +1096,23 @@ static GamepadLayout calculateLayout(int winW, int winH) {
     int gameW = (int)(240.0f * scale);
     int gameH = (int)(320.0f * scale);
     int gameX = (winW - gameW) / 2;
-    int gameY = (winH - gameH) / 2;
+
+    // Barra de Sistema no topo (MENU e MAPA) com proporção ampla e abaixo da status bar
+    int pillW = (int)(winW * 0.28f);
+    int pillH = (int)(pillW * (100.0f / 240.0f));
+    int topY = std::max((int)(winH * 0.070f), pillH / 2 + 36);
+
+    // Subir a tela do jogo logo abaixo dos botões superiores com margem confortável
+    int topLimit = topY + pillH / 2 + (int)(winW * 0.025f);
+    int maxGameY = (winH - gameH) / 2;
+    int gameY = std::max(0, std::min(topLimit, maxGameY));
     layout.gameRect = { gameX, gameY, gameW, gameH };
     layout.controllerBgRect = { 0, 0, 0, 0 }; // Sem fundo opaco, overlay translúcido sobre o jogo!
 
     // Botão de Ocultar/Reexibir Controles Virtuais no canto inferior esquerdo
     int rToggle = (int)(winW * 0.050f);
     int toggleX = (int)(winW * 0.08f);
-    int toggleY = winH - (int)(winW * 0.08f);
+    int toggleY = winH - (int)(winW * 0.070f);
     int stepToggle = (int)(rToggle * 2.25f);
     int curUtilX = toggleX;
 
@@ -1113,16 +1124,16 @@ static GamepadLayout calculateLayout(int winW, int winH) {
     layout.buttons.push_back({ KEY_TOGGLE_ORIENTATION, curUtilX, toggleY, rToggle, rToggle * 2, rToggle * 2, s_texBtnRotate });
 #endif
 
-
     if (s_touchOverlayEnabled) {
-      // D-Pad e Cluster de Acao subidos para winW * 0.42f (ergonomia perfeita e abre espaco inferior limpo)
+      // D-Pad e Cluster de Ação posicionados na zona inferior confortável
+      // (abaixados para dar visibilidade máxima à tela e diálogos do jogo)
       layout.dpadX = (int)(winW * 0.22f);
-      layout.dpadY = winH - (int)(winW * 0.42f);
+      layout.dpadY = winH - (int)(winW * 0.31f);
       layout.dpadR = (int)(winW * 0.175f);
 
-      // Disposicao original classica ergonomica (5 no centro, 1 e 7 na coluna esquerda, 3 no topo, 9 no topo-direito):
+      // Disposição clássica ergonômica em arco mantida (5 no centro, 1 e 7 na coluna esquerda, 3 no topo, 9 no topo-direito, R na direita-baixo):
       int actX = (int)(winW * 0.74f);
-      int actY = winH - (int)(winW * 0.42f);
+      int actY = winH - (int)(winW * 0.31f);
       int r5 = (int)(winW * 0.11f);
       int rSub = (int)(r5 * 0.74f);
 
@@ -1132,24 +1143,21 @@ static GamepadLayout calculateLayout(int winW, int winH) {
       layout.buttons.push_back({ 49, actX - (int)(r5 * 1.95f), actY - (int)(r5 * 0.95f), rSub, rSub * 2, rSub * 2, s_texBtn1 });
       // 3 - Skill 2 (Topo)
       layout.buttons.push_back({ 51, actX - (int)(r5 * 0.20f), actY - (int)(r5 * 2.10f), rSub, rSub * 2, rSub * 2, s_texBtn3 });
-      // 7 - Pocao (Esquerda-baixo, abaixo de 1)
+      // 7 - Poção (Esquerda-baixo, abaixo de 1)
       layout.buttons.push_back({ 55, actX - (int)(r5 * 1.85f), actY + (int)(r5 * 1.15f), rSub, rSub * 2, rSub * 2, s_texBtn7 });
       // 9 - Item (Direita-cima)
       layout.buttons.push_back({ 57, actX + (int)(r5 * 1.35f), actY - (int)(r5 * 1.65f), rSub, rSub * 2, rSub * 2, s_texBtn9 });
+      // R - Voltar / Cancelar / Status (Direita-baixo, abaixo de 9 e alinhado ao 7)
+      layout.buttons.push_back({ -7, actX + (int)(r5 * 1.35f), actY + (int)(r5 * 1.15f), rSub, rSub * 2, rSub * 2, s_texBtnRskRound ? s_texBtnRskRound : s_texBtnRsk });
 
-      // Barra de Sistema no topo (MENU, MAPA, R) com proporcao 2.4:1 perfeita e abaixo da status bar
-      int pillW = (int)(winW * 0.25f);
-      int pillH = (int)(pillW * (100.0f / 240.0f));
-      int topY = std::max((int)(winH * 0.080f), pillH / 2 + 36);
+      // Barra de Sistema no topo (apenas MENU e MAPA, proporcionais e espaçados)
+      layout.buttons.push_back({ -8, (int)(winW * 0.26f), topY, 0, pillW, pillH, s_texBtnMenu });
+      layout.buttons.push_back({ 48, (int)(winW * 0.74f), topY, 0, pillW, pillH, s_texBtnMap });
 
-      layout.buttons.push_back({ -8, (int)(winW * 0.17f), topY, 0, pillW, pillH, s_texBtnMenu });
-      layout.buttons.push_back({ 48, (int)(winW * 0.50f), topY, 0, pillW, pillH, s_texBtnMap });
-      layout.buttons.push_back({ -7, (int)(winW * 0.83f), topY, 0, pillW, pillH, s_texBtnRsk });
-
-      // Alternancia de Pocao (< e >) perfeitamente centralizadas no eixo horizontal da tela
-      int rArrow = (int)(winW * 0.060f);
+      // Alternância de Poção (< e >) perfeitamente centralizadas no eixo horizontal da tela
+      int rArrow = (int)(winW * 0.055f);
       int arrowSpacing = (int)(rArrow * 1.25f);
-      int potY = winH - (int)(winW * 0.095f);
+      int potY = winH - (int)(winW * 0.070f);
       layout.buttons.push_back({ -101, winW / 2 - arrowSpacing, potY, rArrow, rArrow * 2, rArrow * 2, s_texBtnPrev });
       layout.buttons.push_back({ 35, winW / 2 + arrowSpacing, potY, rArrow, rArrow * 2, rArrow * 2, s_texBtnNext });
     }
@@ -2145,6 +2153,11 @@ void Platform::present() {
   int dstH = (int)((float)g_screenHeight * scale);
   SDL_Rect dstGame = { (winW - dstW) / 2, (winH - dstH) / 2, dstW, dstH };
 
+  GamepadLayout layout = calculateLayout(winW, winH);
+  if (layout.isPortrait) {
+    dstGame = layout.gameRect;
+  }
+
   // Renderiza moldura temática nas laterais (pillarbox) se houver espaço
   if (g_screenWidth == SCREEN_W_ORIGINAL && dstGame.x > 0) {
     SDL_Texture* activeBezel = nullptr;
@@ -2168,12 +2181,10 @@ void Platform::present() {
 
 #if defined(__ANDROID__) || defined(__SWITCH__)
   {
-    GamepadLayout layout = calculateLayout(winW, winH);
     drawGamepad(layout);
   }
 #else
   if (s_touchOverlayEnabled) {
-    GamepadLayout layout = calculateLayout(winW, winH);
     drawGamepad(layout);
   }
 #endif
@@ -2213,6 +2224,7 @@ void Platform::shutdown() {
   if (s_texBtnMenu) { SDL_DestroyTexture(s_texBtnMenu); s_texBtnMenu = nullptr; }
   if (s_texBtnMap) { SDL_DestroyTexture(s_texBtnMap); s_texBtnMap = nullptr; }
   if (s_texBtnRsk) { SDL_DestroyTexture(s_texBtnRsk); s_texBtnRsk = nullptr; }
+  if (s_texBtnRskRound) { SDL_DestroyTexture(s_texBtnRskRound); s_texBtnRskRound = nullptr; }
   if (s_texBtnPrev) { SDL_DestroyTexture(s_texBtnPrev); s_texBtnPrev = nullptr; }
   if (s_texBtnNext) { SDL_DestroyTexture(s_texBtnNext); s_texBtnNext = nullptr; }
   if (s_texBtnEyeOpen) { SDL_DestroyTexture(s_texBtnEyeOpen); s_texBtnEyeOpen = nullptr; }

@@ -42,9 +42,10 @@ _Ãšltima atualizaÃ§Ã£o: 2026-10-04_
     - Layout de emulador moderno (Overlay Translúcido sobre o Jogo): o jogo ocupa o tamanho máximo da tela mantendo o aspect ratio original (240x320) perfeitamente centralizado.
     - Controles estilo vidro fosco (*frosted glass* translúcido a ~60% de opacidade quando em repouso), permitindo enxergar toda a ação por baixo dos botões sem obstruir a visão.
     - Ao tocar em qualquer botão ou direção do D-Pad, o controle ilumina a 100% de opacidade com efeito de brilho neon ciano e setas ativas.
-    - Redesign de MENU, MAPA e R (substituindo o antigo RSK por um nome mais intuitivo) com proporção 2.4:1 sem distorção e posicionamento seguro abaixo da barra de status.
-    - Disposição de ação clássica ergonômica restaurada: 5 no centro (ataque), 1 (Skill 1) à esquerda-cima, 3 (Skill 2) no topo, 7 (Poção) à esquerda-baixo e 9 (Item) à direita-cima, respeitando a curvatura natural do polegar.
-    - D-Pad e cluster de botões elevados em sincronia (~42% a partir da borda inferior), liberando uma faixa inferior limpa e ampla para as setas circulares de alteração de poção (◀ e ▶), agora perfeitamente centralizadas no eixo horizontal da tela (`winW / 2`).
+    - Topo limpo no modo vertical com apenas 2 botões pílula amplos e equilibrados: `[ MENU ]` à esquerda e `[ MAPA ]` à direita.
+    - Disposição de ação clássica ergonômica em arco 100% preservada: 5 no centro (ataque), 1 (Skill 1) à esquerda-cima, 3 (Skill 2) no topo, 7 (Poção) à esquerda-baixo, 9 (Item) à direita-cima, e novo botão circular **R BACK** na direita-baixo (abaixo de 9 e espelhando o 7).
+    - D-Pad e cluster de botões rebaixados ergonomicamente (~31% da borda inferior), e tela do jogo subida até o limite das pílulas de topo no modo vertical, eliminando a sobreposição de botões sobre o herói e balões de diálogo dos NPCs.
+    - Setas circulares de alteração de poção (◀ e ▶) centralizadas na base da tela (`winW / 2`).
     - Algoritmo de hit-test por menor razão de distância (`d / maxR`): elimina qualquer ambiguidade de clique ou necessidade de "adivinhar o ponto", registrando sempre com 100% de precisão o botão mais próximo do polegar.
     - Modo Paisagem (Horizontal) totalmente proporcional e balanceado: setas ◀ e ▶ movidas para a coluna esquerda (entre MENU e D-Pad), deixando o lado direito limpo e espaçoso para os 5 botões de ação e os botões MAPA e R.
     - Botão de Ocultar/Reexibir Controles Virtuais (Ícone discreto de olho no canto inferior esquerdo): permite alternar entre a sobreposição de controles e uma visualização 100% limpa da tela do jogo (ideal para jogar com gamepad Bluetooth/USB ou apreciar cutscenes/cenários), com resposta tátil háptica e persistência elegante.
