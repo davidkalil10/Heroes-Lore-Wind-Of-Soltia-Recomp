@@ -28,7 +28,7 @@ ROMFS       :=  romfs
 APP_TITLE   :=  Heroes Lore: Wind of Soltia
 APP_DESCRIPTION := Recompilacao Nativa C++17 + SDL2 por David Kalil Braga (2026)
 APP_AUTHOR  :=  EA Mobile / Port por David Kalil Braga (2026)
-APP_VERSION :=  1.2.4
+APP_VERSION :=  1.2.5
 APP_TITLEID :=  0100686C73000000
 APP_ICON    :=  $(TOPDIR)/switch/icon.jpg
 

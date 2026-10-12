@@ -32,10 +32,20 @@ Os binários compilados oficiais e prontos para jogar de cada plataforma estão 
   - **Alternância Dinâmica:** Mude o idioma a qualquer momento pelo menu de **Opções** (na tela de título ou no menu de pause in-game) ou instantaneamente pelo atalho de teclado <kbd>F2</kbd>.
   - **Hot-Reload Imediato em C++:** O buffer de textos, itens/equipamentos do inventário, telas de status, submenus e os diálogos do mapa ativo (mesmo com balão de fala aberto na tela) são recarregados instantaneamente em menos de 1 ms a 30 FPS sem congelamentos, deadlocks ou necessidade de reiniciar o jogo.
   - **Persistência Automática:** A preferência de idioma é salva em `hl_settings.ini` e preservada entre sessões.
+- **Cloud Save & Sincronização Cruzada (Google Drive RFC 8628 Device Flow):**
+  - Salve seu progresso no PC e continue no Celular ou Nintendo Switch via backup em nuvem integrado.
+  - Autenticação sem navegador embutido via código de dispositivo (`google.com/device`).
+  - Organização automática em pasta dedicada **"Heroes Lore - Wind of Soltia"** no Google Drive, isolando os saves e mantendo a raiz limpa.
+  - Empacotamento atômico em JSON de todos os 3 heróis da campanha (Ronin, Reah, Aramor) e progresso global.
+- **Engine de Tipografia Vetorial TrueType (stb_truetype + Inter-SemiBold):**
+  - Renderização tipográfica de alta definição com antialiasing linear suave e kerning proporcional, substituindo a antiga fonte bitmap pixelada nos modais de Cloud Save e Auto-Updater.
+  - Suporte completo a caracteres acentuados da língua portuguesa (á, é, í, ó, ú, ç, ã, õ).
+- **Proporção Automática Inteligente (Aspect Auto):**
+  - O motor detecta a orientação do dispositivo/janela em tempo real: aplica **16:9 True Widescreen** em modo paisagem e **3:4 Original com Molduras** em modo retrato automaticamente.
 - **Fidelidade Matemática e Lógica 1:1:** O jogo executa a partir dos binários `.class` originais do JAR, garantindo que a física, colisões, progressão de nível e IA de chefes sejam idênticos ao jogo original de celular.
 - **True Widescreen (16:9 — 568x320):** Expansão real da área de visão do mapa, exibindo até **35 colunas de tiles simultaneamente** (em comparação com 15 colunas do original de 240p), pixel-perfect e sem qualquer distorção anamórfica de sprites.
 - **Molduras Temáticas Clássicas (Bezels):** Para quem prefere a nostalgia da proporção 3:4 original, estão disponíveis artes laterais dedicadas (*Soltia Ancestral*, *Ardósia Escura* e *Preto Clássico*).
-- **Limitador de Taxa de Quadros Preciso:** Alterne instantaneamente entre **15 FPS** (cadência clássica J2ME com frame pacer preciso) e **30 FPS Turbo** (movimentação e combates com fluidez aprimorada).
+- **Limitador de Taxa de Quadros Preciso:** Alterne instantaneamente entre **15 FPS** (cadência clássica J2ME com frame pacer preciso) e **30 FPS Turbo** (movimentação e combates com fluidez aprimorada), diretamente pelo Menu de Opções in-game ou atalhos.
 - **HUD On-Screen Display (OSD):** Banner informativo flutuante estilo console moderno com visual em vidro fosco (*frosted glass*) que confirma as alterações em tempo real.
 - **Sintetizador MIDI Nativo de Alta Fidelidade:** Trilhas sonoras e efeitos MIDI executados em tempo real utilizando TinySoundFont (`tsf`) com o banco orquestrado SoundFont TimGM6mb embutido.
 - **Persistência Completa (Save & Load):** Suporte nativo ao subsistema J2ME RMS (*Record Management System*) com gravação e leitura em tempo real dos 3 slots de personagens (`_k`, `_s`, `_w`) e estado global (`_o`), além de salvar configurações em `hl_settings.ini`.
@@ -100,14 +110,17 @@ O mapeamento foi planejado com ergonomia moderna para controles USB/Bluetooth, t
 
 ### 📱 Controles Virtuais Touchscreen (Celular Android / Nintendo Switch)
 
-Na tela sensível ao toque, além do D-Pad direcional analógico e dos botões ergonômicos de combate e menu, utilitários práticos ficam disponíveis na base da tela:
-- **Canto Inferior Esquerdo:**
+Na tela sensível ao toque, a interface translúcida estilo *frosted glass* oferece ergonomia de console sem poluir o jogo:
+- **Modo Vertical (Retrato em Smartphones / TATE no Switch):**
+  - **Tela do Jogo Elevada:** O jogo inicia logo abaixo dos botões do topo, abrindo centenas de pixels de área limpa na base.
+  - **Zero Sobreposição:** Controles rebaixados para a zona dos polegares, acabando com botões cobrindo balões de fala de NPCs e o herói.
+  - **Barra de Topo Limpa:** Apenas 2 botões pílula amplos e confortáveis: `[ MENU ]` à esquerda e `[ MAPA ]` à direita.
+  - **Cluster de Ação em Arco Ergonômico:** Formato clássico preservado com **5** (Ataque), **1** e **3** (Skills), **7** (Poção), **9** (Item) e o novo botão circular **R BACK** na direita-baixo para cancelar e abrir status com o polegar.
+- **Base da Tela:**
   - **Botão Olho (`👁️`):** Oculta ou reexibe os botões na tela (ideal para jogar com gamepad ou assistir cutscenes limpas).
   - **Botão Rotação (`🔄`, no Switch):** Alterna entre orientação horizontal (Paisagem 1280x720) e vertical (Retrato TATE 90° e 270° Flip Grip).
-- **Canto Inferior Direito (Espelhado e Ergonômico):**
-  - **Botão 16:9 (`btn_aspect`):** Alterna em tempo real entre a proporção 3:4 clássica e o modo True Widescreen expandido.
-  - **Botão FPS (`btn_fps`):** Alterna instantaneamente entre 15 FPS (nostalgia original) e 30 FPS (turbo ágil).
-- Os botões utilitários permanecem acessíveis mesmo com o gamepad translúcido desativado, permitindo restaurar os controles ou alterar gráficos/velocidade a qualquer momento.
+  - **Setas de Poção (`◀` e `▶`):** Centralizadas na base da tela para troca rápida de itens sem tirar o polegar do combate.
+- **Ajustes de Tela e FPS:** Migrados diretamente para o **Menu de Opções in-game (`be.class`)**, com suporte ao modo **Aspect Auto** (detecta orientação do aparelho automaticamente) e atalhos rápidos de gamepad/teclado.
 
 ---
 
@@ -215,6 +228,7 @@ Para detalhes sobre a engenharia reversa das 90 classes ofuscadas, resolução d
 - [`docs/LEARNINGS.md`](docs/LEARNINGS.md) — Aprendizados técnicos, armadilhas superadas e decisões de arquitetura.
 - [`docs/VERSIONING.md`](docs/VERSIONING.md) — Guia de versionamento multi-plataforma e lançamento de releases.
 - [`docs/CLASS_MAP.md`](docs/CLASS_MAP.md) — Mapeamento detalhado das classes do jogo.
+- [`docs/PORTING_GUIDE_BLUEPRINT.md`](docs/PORTING_GUIDE_BLUEPRINT.md) — Guia Mestre e Blueprint Arquitetural para portabilidade de jogos J2ME.
 
 ---
 
