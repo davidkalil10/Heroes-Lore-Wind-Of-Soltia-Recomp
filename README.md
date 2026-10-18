@@ -112,14 +112,14 @@ O mapeamento foi planejado com ergonomia moderna para controles USB/Bluetooth, t
 
 Na tela sensível ao toque, a interface translúcida estilo *frosted glass* oferece ergonomia de console sem poluir o jogo:
 - **Modo Vertical (Retrato em Smartphones / TATE no Switch):**
-  - **Tela do Jogo Elevada:** O jogo inicia logo abaixo dos botões do topo, abrindo centenas de pixels de área limpa na base.
-  - **Zero Sobreposição:** Controles rebaixados para a zona dos polegares, acabando com botões cobrindo balões de fala de NPCs e o herói.
-  - **Barra de Topo Limpa:** Apenas 2 botões pílula amplos e confortáveis: `[ MENU ]` à esquerda e `[ MAPA ]` à direita.
-  - **Cluster de Ação em Arco Ergonômico:** Formato clássico preservado com **5** (Ataque), **1** e **3** (Skills), **7** (Poção), **9** (Item) e o novo botão circular **R BACK** na direita-baixo para cancelar e abrir status com o polegar.
+  - **Tela do Jogo no Topo Absoluto:** O jogo inicia no topo da tela (com margem sutil de 1.5% para notch/status bar), liberando mais de 900px na base em smartphones compridos (20:9).
+  - **Zero Sobreposição:** O jogo, a barra de HP/SP e os balões de diálogo dos NPCs ficam 100% desobstruídos no topo, enquanto todos os controles virtuais operam na porção inferior.
+  - **Pílulas de Sistema [ MENU ] e [ MAPA ] ao Alcance dos Dedos:** Reposicionadas confortavelmente logo acima da borda superior do D-Pad, acessíveis pelo polegar esquerdo sem exigir soltar o aparelho para alcançar o topo da tela.
+  - **Cluster de Ação em Arco Ergonômico:** Formato clássico preservado com **5** (Ataque/Confirmar), **1** e **3** (Skills), **7** (Poção), **9** (Item) e o botão circular **R BACK** na direita-baixo para cancelar diálogos, fechar menus e abrir status.
 - **Base da Tela:**
   - **Botão Olho (`👁️`):** Oculta ou reexibe os botões na tela (ideal para jogar com gamepad ou assistir cutscenes limpas).
   - **Botão Rotação (`🔄`, no Switch):** Alterna entre orientação horizontal (Paisagem 1280x720) e vertical (Retrato TATE 90° e 270° Flip Grip).
-  - **Setas de Poção (`◀` e `▶`):** Centralizadas na base da tela para troca rápida de itens sem tirar o polegar do combate.
+  - **Setas de Poção (`◀` e `▶`):** Centralizadas na base da tela para troca rápida de poções sem desviar o polegar do combate.
 - **Ajustes de Tela e FPS:** Migrados diretamente para o **Menu de Opções in-game (`be.class`)**, com suporte ao modo **Aspect Auto** (detecta orientação do aparelho automaticamente) e atalhos rápidos de gamepad/teclado.
 
 ---
@@ -128,10 +128,12 @@ Na tela sensível ao toque, a interface translúcida estilo *frosted glass* ofer
 
 ### 🎮 Nintendo Switch (.nro Homebrew)
 - **Instalação:** Copie `heroes_lore.nro` para `sdmc:/switch/heroes_lore/heroes_lore.nro` no seu Switch desbloqueado (Atmosphere).
-- **3 Modos de Rotação da Tela (Orientação Dinâmica):**
+- **Detecção Automática do Modo TV (Dock):** Consulta nativa via `libnx` (`appletGetOperationMode()`). Ao conectar no dock para jogar na TV em 1080p com Joy-Cons ou Pro Controller, todos os controles virtuais touch e rotações são automaticamente desativados, garantindo visualização cinematográfica limpa com mensagens OSD informativas.
+- **3 Modos de Rotação da Tela (Orientação Dinâmica em Modo Portátil):**
   - **Modo 0 (Paisagem Padrão - 1280x720):** Jogo centralizado na proporção clássica 240x320 com barras decorativas laterais.
   - **Modo 1 (Retrato 90° Horário):** Segure o console na vertical como um smartphone gigante.
   - **Modo 2 (Retrato 270° Anti-horário / Flip Grip):** Otimizado especialmente para acessórios como o **Flip Grip**, posicionando os Joy-Cons confortavelmente nas laterais.
+- **Modais Nativos em Modo Retrato (TATE):** As janelas modais de **Cloud Save** e **Atualizador OTA** são renderizadas diretamente na textura vertical rotacionada (720x1280), adaptando-se com perfeita legibilidade sem travamentos.
 - **Alternar Orientação:** Pressione <kbd>-</kbd> (Minus) a qualquer momento para ciclar entre os modos.
 - **Ocultar/Reexibir Botões Virtuais:** Pressione <kbd>L3</kbd> (pressionar o analógico esquerdo).
 - **Touchscreen Capacitivo:** Toques na tela capacitiva do Switch são mapeados matematicamente em 1:1, mesmo com a tela rotacionada.

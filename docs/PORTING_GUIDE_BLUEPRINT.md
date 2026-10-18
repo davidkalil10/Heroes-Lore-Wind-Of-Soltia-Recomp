@@ -323,8 +323,9 @@ Uma vez que o Marco 0 esteja homologado, siga a ordem comprovada de expansões:
 - Projeto em `android/` com NDK 26, CMake e `SDLActivity`.
 - Implemente `Virtual Gamepad Fullscreen Overlay`:
   - Controles translúcidos estilo *frosted glass*.
-  - No modo vertical, eleve a tela do jogo logo abaixo das pílulas superiores e abaixe os botões para a base, eliminando sobreposições com balões de fala de NPCs.
-  - Botão `R BACK` circular no cluster de ação inferior direito.
+  - **Ergonomia Máxima no Modo Vertical:** Inicie o viewport do jogo no topo absoluto (`gameY = std::max(0, (int)(winH * 0.015f))`). Em aparelhos modernos compridos (19.5:9 ou 20:9), o jogo 3:4 ocupa os primeiros ~1440px, liberando mais de 900px na base para os controles sem nenhuma sobreposição ao HUD de HP/SP ou diálogos dos NPCs.
+  - **Pílulas de Sistema no Polegar:** Posicione botões como `[ MENU ]` e `[ MAPA ]` logo acima da borda superior do D-Pad (`sysY = dpadTop - pillH/2 - 0.035*winW`), permitindo acionamento direto pelo polegar esquerdo sem soltar o aparelho para alcançar o topo.
+  - Botão de ação secundário/cancelamento (`R BACK`) circular na base direita do cluster de combate.
   - Ícone oficial de aplicativo em todas as densidades (`mipmap-xhdpi` etc.).
   - Keystore permanente para atualizações de APK sem conflito de assinatura.
 
@@ -334,7 +335,8 @@ Uma vez que o Marco 0 esteja homologado, siga a ordem comprovada de expansões:
   - Inicialização de RomFS (`romfsInit()`).
   - Loop do SO via `appletMainLoop()`.
   - Saves no cartão SD fora do RomFS (`sdmc:/switch/nome_do_jogo/`).
-  - Suporte a modo vertical (TATE 90° e 270° Flip Grip).
+  - **Detecção Automática do Modo TV (Dock):** Consulta via `libnx` (`appletGetOperationMode() == AppletOperationMode_Console`). Se acoplado na TV, desative todos os botões virtuais touch e rotações de tela para visualização limpa em 1080p, com mensagens OSD informativas de transição.
+  - **Modo Vertical (TATE 90° e 270° Flip Grip):** Renderização via textura intermediária `s_rotateTarget` (720x1280). **Atenção:** Qualquer janela modal (como Cloud Save ou Atualizador OTA) deve ser desenhada *dentro* do render target `s_rotateTarget` antes do `return` de rotação, evitando a sensação de tela congelada.
   - Ícone de 256x256 e metadados `.nacp`.
 
 ### Passo 5: Tipografia Vetorial TrueType (`stb_truetype.h` + Inter)
