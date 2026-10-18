@@ -777,4 +777,25 @@ Fonte: `heroes_lore_modern/PROJECT_KNOWLEDGE_BACKUP.md`
     4. **Topo Simplificado e Elegante com 2 Pílulas:**
        - Com a descida do `R`, o topo agora exibe apenas duas pílulas amplas e equilibradas: `[ MENU ]` à esquerda (26%) e `[ MAPA ]` à direita (74%).
 
+## Sessão 32 (Portabilidade de Refinamentos do Switch e Mobile a partir de Heroes Lore 2)
+
+- **Detecção Automática do Modo Dock no Nintendo Switch:**
+  - *Diagnóstico:* Ao acoplar o Nintendo Switch no Dock para jogar na TV em 1080p, os botões virtuais de toque (desenhados para modo portátil) continuavam na tela, poluindo a exibição na TV.
+  - *Causa Raiz:* Não havia verificação do estado operacional do Horizon OS via `libnx`.
+  - *Solução Arquitetural:*
+    1. Incluído o header `<switch.h>` e implementado o helper `isSwitchDocked()`, consultando `appletGetOperationMode() == AppletOperationMode_Console`.
+    2. No `calculateLayout`: ao detectar dock, a geometria do jogo é centralizada no display (com suporte a molduras em 1080p), a lista de botões virtuais é limpa (`layout.buttons.clear()`) e o raio do D-Pad é zerado (`layout.dpadR = 0`).
+    3. No `drawGamepad`: se `isSwitchDocked()` for verdadeiro, retorna imediatamente.
+    4. No `Platform::present()`: rotação de tela do Switch é desativada quando conectado ao dock (`if (s_screenRotation != 0 && !currentDocked)`), e transições de acoplamento exibem mensagens OSD informativas ("Modo TV (Dock): Controles virtuais desativados" e "Modo Portatil: Controles virtuais restaurados").
+
+- **Correção de Congelamento de Diálogos Modais no Modo Vertical (TATE) do Switch:**
+  - *Diagnóstico:* No Nintendo Switch em modo TATE (90° ou 270° Flip Grip), abrir qualquer janela modal (como o Atualizador OTA ou o Cloud Save) causava a sensação de tela congelada (o menu não aparecia, mas bloqueava os comandos do jogo).
+  - *Causa Raiz:* No pipeline de renderização em modo TATE, o SDL renderiza a cena em uma textura intermediária `s_rotateTarget` de dimensões `720x1280` e encerra a função com `return`. As rotinas `Updater::drawModal` e `CloudSave::drawModal` eram chamadas apenas após o bloco do Switch, nunca sendo gravadas na textura rotacionada.
+  - *Solução:* Chamada de `Updater::drawModal(s_renderer, 720, 1280)` e `CloudSave::drawModal(s_renderer, 720, 1280)` inserida diretamente dentro do contexto ativo de `s_rotateTarget` antes de desvincular o render target. Como os modais já possuem cálculo responsivo `isPortrait = (winH > winW)`, eles se ajustam com perfeição à proporção vertical.
+
+- **Refinamento Ergonômico do Layout Retrato (Mobile & Switch TATE):**
+  - *Elevação Total do Viewport:* O topo do jogo agora se inicia em `gameY = std::max(0, (int)(winH * 0.015f))`. Em telas compridas modernas (19.5:9 / 20:9, ex: 1080x2400), o jogo 3:4 fica 100% livre no terço superior, liberando a porção inferior exclusivamente para os controles virtuais e eliminando qualquer oclusão com a barra de HP/SP e caixas de diálogo.
+  - *Posicionamento Ergonômico de MENU e MAPA:* As pílulas de sistema `[ MENU ]` (-8) e `[ MAPA ]` (48) foram movidas do topo da tela para logo acima da borda superior do D-Pad (`sysY = (layout.dpadY - layout.dpadR) - pillH/2 - winW * 0.035f`), ficando acessíveis diretamente ao polegar esquerdo sem exigir que o jogador solte o celular para alcançar o topo.
+  - *Preservação Estrita do Arco de Combate e Atalhos:* Mantida a geometria clássica em arco dos botões de ação (5 ATK, 1 SKILL, 3 SKILL, 7 POT, 9 ITEM, R BACK) e as setas de poção centralizadas no rodapé.
+
 

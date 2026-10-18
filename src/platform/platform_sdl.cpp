@@ -1082,30 +1082,49 @@ struct GamepadLayout {
   std::vector<TouchButtonDef> buttons;
 };
 
+static bool isSwitchDocked() {
+#ifdef __SWITCH__
+  return (appletGetOperationMode() == AppletOperationMode_Console);
+#else
+  return false;
+#endif
+}
+
 static GamepadLayout calculateLayout(int winW, int winH) {
   GamepadLayout layout;
   layout.isPortrait = (winH > winW);
   layout.dpadR = 0;
 
+  // No Nintendo Switch em modo Dock (TV), não há controles de toque na televisão:
+  // Ocultamos todos os botões virtuais sem exceção (D-Pad, ações, MENU, MAPA, olho, rotação, etc.)
+  if (isSwitchDocked()) {
+    float scaleX = (float)winW / (float)g_screenWidth;
+    float scaleY = (float)winH / (float)g_screenHeight;
+    float scale = std::min(scaleX, scaleY);
+    int gameW = (int)((float)g_screenWidth * scale);
+    int gameH = (int)((float)g_screenHeight * scale);
+    int gameX = (winW - gameW) / 2;
+    int gameY = (winH - gameH) / 2;
+    layout.gameRect = { gameX, gameY, gameW, gameH };
+    layout.controllerBgRect = { 0, 0, 0, 0 };
+    layout.buttons.clear();
+    return layout;
+  }
+
   if (layout.isPortrait) {
     // Modo Retrato (Smartphone em pé / TATE)
-    // O jogo ocupa a tela no maior tamanho possível mantendo a proporção exata 240x320
-    float scaleW = (float)winW / 240.0f;
-    float scaleH = (float)winH / 320.0f;
+    // O jogo ocupa a tela no maior tamanho possível mantendo a proporção real do viewport
+    // (240x320 em 3:4 ou 568x320 em 16:9 True Widescreen) -> sem esticar verticalmente
+    float scaleW = (float)winW / (float)g_screenWidth;
+    float scaleH = (float)winH / (float)g_screenHeight;
     float scale = std::min(scaleW, scaleH);
-    int gameW = (int)(240.0f * scale);
-    int gameH = (int)(320.0f * scale);
+    int gameW = (int)((float)g_screenWidth * scale);
+    int gameH = (int)((float)g_screenHeight * scale);
     int gameX = (winW - gameW) / 2;
 
-    // Barra de Sistema no topo (MENU e MAPA) com proporção ampla e abaixo da status bar
-    int pillW = (int)(winW * 0.28f);
-    int pillH = (int)(pillW * (100.0f / 240.0f));
-    int topY = std::max((int)(winH * 0.070f), pillH / 2 + 36);
-
-    // Subir a tela do jogo logo abaixo dos botões superiores com margem confortável
-    int topLimit = topY + pillH / 2 + (int)(winW * 0.025f);
-    int maxGameY = (winH - gameH) / 2;
-    int gameY = std::max(0, std::min(topLimit, maxGameY));
+    // Subir a tela do jogo para o topo absoluto da tela (com margem sutil para notch/status bar)
+    // Liberando a parte inferior para que os botões virtuais fiquem 100% fora da área do jogo
+    int gameY = std::max(0, (int)(winH * 0.015f));
     layout.gameRect = { gameX, gameY, gameW, gameH };
     layout.controllerBgRect = { 0, 0, 0, 0 }; // Sem fundo opaco, overlay translúcido sobre o jogo!
 
@@ -1114,6 +1133,7 @@ static GamepadLayout calculateLayout(int winW, int winH) {
     int toggleX = (int)(winW * 0.08f);
     int toggleY = winH - (int)(winW * 0.070f);
     int stepToggle = (int)(rToggle * 2.25f);
+    (void)stepToggle;
     int curUtilX = toggleX;
 
     layout.buttons.push_back({ KEY_TOGGLE_TOUCH_UI, curUtilX, toggleY, rToggle, rToggle * 2, rToggle * 2,
@@ -1125,19 +1145,18 @@ static GamepadLayout calculateLayout(int winW, int winH) {
 #endif
 
     if (s_touchOverlayEnabled) {
-      // D-Pad e Cluster de Ação posicionados na zona inferior confortável
-      // (abaixados para dar visibilidade máxima à tela e diálogos do jogo)
+      // D-Pad posicionado na zona inferior esquerda
       layout.dpadX = (int)(winW * 0.22f);
       layout.dpadY = winH - (int)(winW * 0.31f);
       layout.dpadR = (int)(winW * 0.175f);
 
-      // Disposição clássica ergonômica em arco mantida (5 no centro, 1 e 7 na coluna esquerda, 3 no topo, 9 no topo-direito, R na direita-baixo):
+      // Disposição clássica ergonômica em arco mantida estritamente (5 no centro, 1 e 7 na coluna esquerda, 3 no topo, 9 no topo-direito, R na direita-baixo):
       int actX = (int)(winW * 0.74f);
       int actY = winH - (int)(winW * 0.31f);
       int r5 = (int)(winW * 0.11f);
       int rSub = (int)(r5 * 0.74f);
 
-      // 5 - Ataque (Centro, grande)
+      // 5 - Ataque / Confirmar (Centro, grande)
       layout.buttons.push_back({ 53, actX, actY, r5, r5 * 2, r5 * 2, s_texBtn5 });
       // 1 - Skill 1 (Esquerda-cima)
       layout.buttons.push_back({ 49, actX - (int)(r5 * 1.95f), actY - (int)(r5 * 0.95f), rSub, rSub * 2, rSub * 2, s_texBtn1 });
@@ -1150,9 +1169,16 @@ static GamepadLayout calculateLayout(int winW, int winH) {
       // R - Voltar / Cancelar / Status (Direita-baixo, abaixo de 9 e alinhado ao 7)
       layout.buttons.push_back({ -7, actX + (int)(r5 * 1.35f), actY + (int)(r5 * 1.15f), rSub, rSub * 2, rSub * 2, s_texBtnRskRound ? s_texBtnRskRound : s_texBtnRsk });
 
-      // Barra de Sistema no topo (apenas MENU e MAPA, proporcionais e espaçados)
-      layout.buttons.push_back({ -8, (int)(winW * 0.26f), topY, 0, pillW, pillH, s_texBtnMenu });
-      layout.buttons.push_back({ 48, (int)(winW * 0.74f), topY, 0, pillW, pillH, s_texBtnMap });
+      // Botões de Sistema (MENU e MAPA) posicionados abaixo do jogo e acima do D-Pad
+      // HL1: MENU = -8 (LSK), MAPA = 48 ('0')
+      int pillW = (int)(winW * 0.21f);
+      int pillH = (int)(pillW * (100.0f / 240.0f));
+      int sysY = (layout.dpadY - layout.dpadR) - pillH / 2 - (int)(winW * 0.035f);
+      int menuX = (int)(winW * 0.14f);
+      int mapX = (int)(winW * 0.38f);
+
+      layout.buttons.push_back({ -8, menuX, sysY, 0, pillW, pillH, s_texBtnMenu });
+      layout.buttons.push_back({ 48, mapX, sysY, 0, pillW, pillH, s_texBtnMap });
 
       // Alternância de Poção (< e >) perfeitamente centralizadas no eixo horizontal da tela
       int rArrow = (int)(winW * 0.055f);
@@ -1286,7 +1312,7 @@ static int hitTestTouch(float touchX, float touchY, const GamepadLayout& layout)
 }
 
 static void drawGamepad(const GamepadLayout& layout) {
-  if (!s_renderer) return;
+  if (!s_renderer || isSwitchDocked()) return;
 
   // 1. D-Pad Virtual (Translúcido / Frosted Glass Overlay) se controles habilitados
   if (s_touchOverlayEnabled && s_texDpadBase && layout.dpadR > 0) {
@@ -2111,7 +2137,22 @@ void Platform::present() {
   loadGamepadTextures();
 
 #ifdef __SWITCH__
-  if (s_screenRotation != 0) {
+  static bool s_wasSwitchDocked = false;
+  static bool s_dockStateInit = false;
+  bool currentDocked = isSwitchDocked();
+  if (!s_dockStateInit) {
+    s_wasSwitchDocked = currentDocked;
+    s_dockStateInit = true;
+  } else if (currentDocked != s_wasSwitchDocked) {
+    s_wasSwitchDocked = currentDocked;
+    if (currentDocked) {
+      Platform::showOsdMessage("Modo TV (Dock): Controles virtuais desativados");
+    } else {
+      Platform::showOsdMessage("Modo Portatil: Controles virtuais restaurados");
+    }
+  }
+
+  if (s_screenRotation != 0 && !currentDocked) {
     if (!s_rotateTarget) {
       s_rotateTarget = SDL_CreateTexture(
           s_renderer,
@@ -2128,6 +2169,16 @@ void Platform::present() {
       SDL_RenderCopy(s_renderer, s_screenTexture, nullptr, &layout.gameRect);
       drawGamepad(layout);
       drawOsd(720, 1280);
+
+      // Renderiza diálogo modal do atualizador OTA se estiver ativo no modo vertical
+      if (Updater::isPromptActive()) {
+        Updater::drawModal(s_renderer, 720, 1280);
+      }
+
+      // Renderiza diálogo modal do Cloud Save se estiver ativo no modo vertical
+      if (CloudSave::isModalActive()) {
+        CloudSave::drawModal(s_renderer, 720, 1280);
+      }
 
       SDL_SetRenderTarget(s_renderer, nullptr);
       SDL_SetRenderDrawColor(s_renderer, 0, 0, 0, 255);
