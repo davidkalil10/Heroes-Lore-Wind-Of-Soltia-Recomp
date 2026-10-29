@@ -279,6 +279,37 @@ void VM::invoke(Method* m, Value* args, Value* ret) {
   t->sp = need; SpGuard g{t, base};
   if (trace) fprintf(stderr, "[call] %s.%s%s\n", m->owner->name.c_str(), m->name.c_str(), m->desc.c_str());
   exec(*this, m, L, ret);
+
+  // Restaura a lógica original de BGM de mapa de ae.a() (presente em ai.a() da build K700 v2.0.7,
+  // que havia sido removida na versão PT-BR junto com 24.mid e 26..31.mid).
+  if (!m->isStatic && m->name == "a" && m->desc == "()V" && m->owner->name == "ae") {
+    Instance* aeInst = static_cast<Instance*>(L[0].o);
+    FieldInfo* fa = findField(m->owner, "a:B"); // var_byte_a (Map ID)
+    FieldInfo* fb = findField(m->owner, "b:B"); // var_byte_b (Tileset ID)
+    if (aeInst && fa && fb) {
+      int mapId = (int8_t)aeInst->f[fa->index].i;
+      int tilesetId = (int8_t)aeInst->f[fb->index].i;
+      if (mapId != 79 && mapId != 80 && mapId != 81) {
+        static const int8_t kTilesetBgm[20] = {
+            28, 0, 27, 29, -1, 1, 26, 31, 31, 2, -1, 25, 24, 24, 30, 3, -1, -1, -1, -1
+        };
+        if (tilesetId >= 0 && tilesetId < 20) {
+          int8_t sndId = kTilesetBgm[tilesetId];
+          if (sndId != -1) {
+            ClassInfo* cbw = mustClass("bw");
+            initClass(cbw);
+            Method* mLoad = mustMethod(cbw, "a:(B)V");
+            Method* mPlay = mustMethod(cbw, "b:(I)V");
+            Value aLoad[1]; aLoad[0].i = sndId;
+            Value rDummy[2];
+            invoke(mLoad, aLoad, rDummy);
+            Value aPlay[1]; aPlay[0].i = sndId;
+            invoke(mPlay, aPlay, rDummy);
+          }
+        }
+      }
+    }
+  }
 }
 
 }  // namespace hl

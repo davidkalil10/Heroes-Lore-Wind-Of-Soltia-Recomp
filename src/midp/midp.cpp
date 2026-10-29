@@ -45,7 +45,12 @@ void GraphicsObj::trace(std::vector<Object*>& o) {
   if (target) o.push_back(target);
 }
 
+static PlayerObj* s_activeMusicPlayer = nullptr;
+static PlayerObj* s_bgMusicPlayer = nullptr;
+
 PlayerObj::~PlayerObj() {
+  if (s_activeMusicPlayer == this) s_activeMusicPlayer = nullptr;
+  if (s_bgMusicPlayer == this) s_bgMusicPlayer = nullptr;
   if (handle) {
     if (isMusic) Mix_FreeMusic((Mix_Music*)handle);
     else Mix_FreeChunk((Mix_Chunk*)handle);
@@ -654,7 +659,12 @@ static void Player_close(VM&, Value* args, Value*) {
   PlayerObj* p = static_cast<PlayerObj*>(args[0].o);
   if (p) {
     if (p->isMusic) {
-      MidiSynth::stop();
+      if (s_bgMusicPlayer == p) s_bgMusicPlayer = nullptr;
+      if (s_activeMusicPlayer == p) {
+        MidiSynth::stop();
+        if (p->handle) Mix_HaltMusic();
+        s_activeMusicPlayer = nullptr;
+      }
       if (p->handle) {
         Mix_FreeMusic((Mix_Music*)p->handle);
         p->handle = nullptr;
@@ -718,6 +728,14 @@ static void Player_start(VM&, Value* args, Value*) {
   if (!p) return;
   p->state = 400;
   if (p->isMusic) {
+    if (s_activeMusicPlayer && s_activeMusicPlayer != p) {
+      if (s_activeMusicPlayer->state == 400 && s_activeMusicPlayer->loopCount == -1 && !s_bgMusicPlayer) {
+        s_bgMusicPlayer = s_activeMusicPlayer;
+      } else {
+        s_activeMusicPlayer->state = 300;
+      }
+    }
+    s_activeMusicPlayer = p;
     if (!MidiSynth::play(p->data.data(), p->data.size(), (p->loopCount == -1) ? -1 : p->loopCount)) {
       if (p->handle) {
         Mix_PlayMusic((Mix_Music*)p->handle, (p->loopCount == -1) ? -1 : p->loopCount);
@@ -731,13 +749,34 @@ static void Player_start(VM&, Value* args, Value*) {
 static void Player_stop(VM&, Value* args, Value*) {
   PlayerObj* p = static_cast<PlayerObj*>(args[0].o);
   if (p) {
+    p->state = 300;
     if (p->isMusic) {
-      MidiSynth::stop();
-      if (p->handle) Mix_HaltMusic();
+      if (s_bgMusicPlayer == p) {
+        s_bgMusicPlayer = nullptr;
+        if (s_activeMusicPlayer) {
+          s_activeMusicPlayer->state = 300;
+          s_activeMusicPlayer = nullptr;
+        }
+        MidiSynth::stop();
+        if (p->handle) Mix_HaltMusic();
+      } else if (s_activeMusicPlayer == p) {
+        MidiSynth::stop();
+        if (p->handle) Mix_HaltMusic();
+        s_activeMusicPlayer = nullptr;
+        if (s_bgMusicPlayer && s_bgMusicPlayer->state == 400) {
+          PlayerObj* bg = s_bgMusicPlayer;
+          s_bgMusicPlayer = nullptr;
+          s_activeMusicPlayer = bg;
+          if (!MidiSynth::play(bg->data.data(), bg->data.size(), (bg->loopCount == -1) ? -1 : bg->loopCount)) {
+            if (bg->handle) {
+              Mix_PlayMusic((Mix_Music*)bg->handle, (bg->loopCount == -1) ? -1 : bg->loopCount);
+            }
+          }
+        }
+      }
     } else if (p->handle) {
       Mix_HaltChannel(-1);
     }
-    p->state = 300;
   }
 }
 

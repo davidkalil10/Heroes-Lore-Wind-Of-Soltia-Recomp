@@ -799,3 +799,18 @@ Fonte: `heroes_lore_modern/PROJECT_KNOWLEDGE_BACKUP.md`
   - *Preservação Estrita do Arco de Combate e Atalhos:* Mantida a geometria clássica em arco dos botões de ação (5 ATK, 1 SKILL, 3 SKILL, 7 POT, 9 ITEM, R BACK) e as setas de poção centralizadas no rodapé.
 
 
+## Sessão 33 (Restauração da Trilha Sonora Completa de Mapas a partir do JAR K700 v2.0.7)
+
+- **Descoberta Arqueológica (Por que o JAR PT-BR era silencioso nos mapas):**
+  - Na versão PT-BR (`Heroes Lore Wind Of Soltia [BR]240x320.jar`), a música de fundo só tocava na tela de título (`22.mid`), intro (`12.mid`), lojas (`04.mid`), game over (`23.mid`) e eventos (`05.mid`..`07.mid`), enquanto todas as cidades, casas, florestas, campos de neve e calabouços ficavam em silêncio.
+  - Ao descompilar e comparar com a build `Heroes-Lore-Wind-of-Soltia_J2ME_ZH_v207-Sony-Ericsson-K700.jar`, descobrimos que:
+    1. A tabela `bw.var_java_lang_String_arr_a` (`0..31`) já listava todas as 32 faixas em ambas as versões.
+    2. **5 músicas já estavam dentro do próprio JAR PT-BR** (`00.mid`..`03.mid` e `25.mid`), mas nunca eram chamadas.
+    3. **7 músicas haviam sido deletadas do JAR PT-BR** para economizar ~13.7 KB (`24.mid`, `26.mid`, `27.mid`, `28.mid`, `29.mid`, `30.mid`, `31.mid`). Todos os 22 arquivos de áudio presentes em ambas as versões possuem exatamente o mesmo hash MD5 byte-a-byte.
+    4. Em `ae.a()` (equivalente a `ai.a()` no K700), o loop que descarrega as faixas `0..4` e `24..31` foi mantido na linha 74, mas as 4 linhas finais do bloco `else` que consultavam a tabela estática `var_byte_arr_a[this.var_byte_b]` (Tileset `0..19` -> Sound ID) e chamavam `bw.a(sndId); bw.b(sndId);` haviam sido removidas do bytecode PT-BR!
+- **Solução Implementada:**
+  1. Copiados os 7 arquivos `.mid` faltantes (`24.mid`, `26.mid`..`31.mid`) do JAR K700 para `reference/extracted/snd/` e `android/app/src/main/assets/snd/`.
+  2. Restaurada em `src/vm/interp.cpp` (ao final da execução de `ae.a:()V`) a tabela original `kTilesetBgm[20] = {28, 0, 27, 29, -1, 1, 26, 31, 31, 2, -1, 25, 24, 24, 30, 3, -1, -1, -1, -1}` (exceto nos mapas de loja `79, 80, 81` que já tocam `04.mid`), invocando `bw.a:(B)V` e `bw.b:(I)V`.
+  3. Refinado o gerenciador de players MIDI em `src/midp/midp.cpp` (`s_activeMusicPlayer` e `s_bgMusicPlayer`):
+     - `Player_close` e `Player_stop` agora verificam se o player fechado/parado é o que está ativo antes de parar o `MidiSynth` (corrigindo também o corte da música de título quando `bw.b((byte)12)` fechava a intro logo após `bu.d()`).
+     - Quando uma cutscene/evento inicia uma música temporária (`bw.c(by4)` em `var_ci_b`) sobre a música do mapa (`var_ci_a`), `s_bgMusicPlayer` preserva a referência ao player do mapa; assim que o evento termina e chama `bw.c()` (`var_ci_b.stop()`), a música do mapa é retomada automaticamente!
