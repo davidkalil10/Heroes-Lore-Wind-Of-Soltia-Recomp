@@ -694,6 +694,22 @@ bool Platform::init(int scale) {
   if (s_isFullscreen) {
     SDL_SetWindowFullscreen(s_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
   }
+#if !defined(__ANDROID__)
+  // Configura ícone da janela no desktop (Windows e Linux)
+  auto iconBytes = Platform::readAsset("ui/app_icon.rgba");
+  if (iconBytes.size() >= 8) {
+    uint32_t iconW = *(const uint32_t*)(iconBytes.data());
+    uint32_t iconH = *(const uint32_t*)(iconBytes.data() + 4);
+    if (iconBytes.size() >= 8 + (size_t)iconW * iconH * 4) {
+      SDL_Surface* iconSurf = SDL_CreateRGBSurfaceWithFormatFrom(
+          (void*)(iconBytes.data() + 8), iconW, iconH, 32, iconW * 4, SDL_PIXELFORMAT_RGBA32);
+      if (iconSurf) {
+        SDL_SetWindowIcon(s_window, iconSurf);
+        SDL_FreeSurface(iconSurf);
+      }
+    }
+  }
+#endif
 #endif
   s_frameStartCounter = SDL_GetPerformanceCounter();
 #if defined(__ANDROID__)

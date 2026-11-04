@@ -23,6 +23,13 @@ set(SOURCES
     src/platform/cloud_save.cpp
 )
 
+if (WIN32)
+    set(RC_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/heroes_lore.rc)
+    if (EXISTS ${RC_FILE})
+        list(APPEND SOURCES ${RC_FILE})
+    endif()
+endif()
+
 add_executable(heroes_lore ${SOURCES})
 
 target_include_directories(heroes_lore PRIVATE

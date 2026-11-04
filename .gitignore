@@ -40,7 +40,7 @@ romfs/
 .idea/
 .vscode/
 *.user
-"dados de consulta/heroes_lore_modern"
+dados de consulta/
 __pycache__/
 *.pyc
 hl_settings.ini

@@ -814,3 +814,23 @@ Fonte: `heroes_lore_modern/PROJECT_KNOWLEDGE_BACKUP.md`
   3. Refinado o gerenciador de players MIDI em `src/midp/midp.cpp` (`s_activeMusicPlayer` e `s_bgMusicPlayer`):
      - `Player_close` e `Player_stop` agora verificam se o player fechado/parado é o que está ativo antes de parar o `MidiSynth` (corrigindo também o corte da música de título quando `bw.b((byte)12)` fechava a intro logo após `bu.d()`).
      - Quando uma cutscene/evento inicia uma música temporária (`bw.c(by4)` em `var_ci_b`) sobre a música do mapa (`var_ci_a`), `s_bgMusicPlayer` preserva a referência ao player do mapa; assim que o evento termina e chama `bw.c()` (`var_ci_b.stop()`), a música do mapa é retomada automaticamente!
+
+## Sessão 34 (Atualização de Ícones HD em Todas as Plataformas e Desvinculação de Dados de Consulta)
+
+- **Auditoria da Pasta `dados de consulta/`:**
+  - *Diagnóstico:* A pasta `dados de consulta/` continha os projetos legados em Flutter (`heroes-lore-modern` e `heroes_lore_modern`), usados exclusivamente como consulta e documentação local de engenharia reversa. No passado, um submódulo Git acidental havia sido criado (`dados de consulta/heroes_lore_modern`), gerando alertas persistentes de `modified: dados de consulta/heroes_lore_modern (untracked content)`.
+  - *Impacto em Builds:* Verificado que **nenhum** script de build (CMake, Gradle, Makefile do Switch ou workflow do GitHub Actions) consome arquivos dessa pasta.
+  - *Solução:* Desindexação segura via `git rm -r --cached "dados de consulta"` e adição da regra `dados de consulta/` ao `.gitignore`. A pasta permanece intacta no disco do usuário para consultas locais, porém não é enviada ao GitHub, economizando espaço e limpando os clones remotos.
+
+- **Atualização Unificada de Ícones HD para Todas as Plataformas (`tools/generate_app_icons.py`):**
+  - *Asset Fonte:* Imagem 2048x2048 de alta definição trazida para o projeto em `assets/new_icon_hl1.jpg` e `assets/heroes_lore_icon_2048.jpg`.
+  - *Plataformas Geradas:*
+    1. **Nintendo Switch:** `switch/icon.jpg` (256x256 JPEG a 95% de qualidade, empacotado no `.nacp` / `.nro`).
+    2. **Linux / Steam Deck:** `dist_linux/heroes_lore.png` (256x256 PNG para o AppImage e lançador Desktop).
+    3. **Android:**
+       - Ícones quadrados e redondos gerados com máscara circular 4x anti-serrilhada para todas as densidades: `mipmap-mdpi` (48px), `mipmap-hdpi` (72px), `mipmap-xhdpi` (96px), `mipmap-xxhdpi` (144px) e `mipmap-xxxhdpi` (192px).
+       - Ícone de assets `android/app/src/main/assets/icon.png` e textura binária `app_icon.rgba`.
+    4. **Windows:**
+       - `src/platform/heroes_lore.ico`: Arquivo multi-resolução contendo tamanhos 16x16, 24x24, 32x32, 48x48, 64x64, 128x128 e 256x256.
+       - `src/platform/heroes_lore.rc`: Arquivo de recurso compilado via `windres` e embutido no executável `heroes_lore.exe` via `CMakeLists.txt` (`if(WIN32) list(APPEND SOURCES ${RC_FILE})`).
+       - `src/platform/platform_sdl.cpp`: Leitura de `ui/app_icon.rgba` e chamada `SDL_SetWindowIcon(s_window, iconSurf)`, exibindo o novo ícone na barra de tarefas e na janela do jogo.
