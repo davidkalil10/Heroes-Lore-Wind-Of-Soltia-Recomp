@@ -34,4 +34,8 @@ Créditos: [ounce-devkit](https://github.com/ouncebrew/ounce-devkit), [libounce]
 
 A execução [43688499234](https://github.com/davidkalil10/Heroes-Lore-Wind-Of-Soltia-Recomp/actions/runs/43688499234) gerou o NRO da revisão `daa804a4326ac75549ae8a15867c2222d2bd0b40`. Tamanho: 100.444.164 bytes. SHA-256: `ebe6c34957e36a3a208067a4eefee8d13d1af072f3438b8451fb51b7906fe43f`. Ícone, NACP e RomFS foram verificados. O binário contém o nome específico do atualizador Switch 2.
 
-O receptor Netloader confirmou a transferência, com 39.192.001 bytes comprimidos. Nome enviado: `heroes_lore_switch2_daa804a.nro`, distinto do Zero e do binário de Switch 1. Nenhum arquivo de save foi acessado pela transferência. A confirmação do protocolo não prova que o jogo abriu; execução e backup/restauração deste jogo ainda aguardam teste físico. A pasta original e a main permanecem intactas.
+O receptor Netloader confirmou a transferência, com 39.192.001 bytes comprimidos. Nome enviado: `heroes_lore_switch2_daa804a.nro`, distinto do Zero e do binário de Switch 1. Nenhum arquivo de save foi acessado pela transferência. Após o envio, a execução e o funcionamento geral também foram confirmados no console. O ciclo Google Drive não foi discriminado individualmente nessa confirmação. A pasta original e a main permanecem intactas.
+
+### Execução aprovada no console
+
+Em 15/11/2026, o Heroes Lore: Wind of Soltia da revisão `daa804a4326ac75549ae8a15867c2222d2bd0b40` recebeu confirmação de funcionamento após envio pelo Netloader. Preservar o NRO e seu SHA-256 como referência; mudanças futuras exigem novo teste. A aprovação mantém o mesmo código de persistência e nuvem, sem inferir testes individuais não discriminados.

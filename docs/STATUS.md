@@ -252,5 +252,5 @@ _Ãšltima atualizaÃ§Ã£o: 2026-10-04_
 - Workflow e Makefile.switch2 separados, com SDK fixado e saída heroes_lore_switch2.nro.
 - Código de persistência e Google Drive preservado, incluindo identidades específicas do Wind of Soltia.
 - Atualizador diferencia o NRO de Switch 2; inicialização de rede permanece ativa.
-- Compilação GitHub Actions aprovada na revisão daa804a4326ac75549ae8a15867c2222d2bd0b40. NRO e recursos embutidos verificados; transferência Netloader aceita. Execução, saves e nuvem deste jogo ainda aguardam confirmação no console.
+- Compilação GitHub Actions aprovada na revisão daa804a4326ac75549ae8a15867c2222d2bd0b40. NRO e recursos embutidos verificados; transferência Netloader aceita. Execução e funcionamento geral aprovados no console após o envio pelo Netloader. A confirmação recebida não discrimina individualmente o ciclo Google Drive.
 - Sem nova release ou integração à main. Instruções em docs/SWITCH2.md.
