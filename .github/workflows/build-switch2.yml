@@ -1,17 +1,8 @@
-name: Experimental Nintendo Switch 2 NRO
+name: Nintendo Switch 2 NRO
 
 on:
+  workflow_call:
   workflow_dispatch:
-  push:
-    branches: [codex/switch2-action]
-    paths:
-      - .github/workflows/build-switch2.yml
-      - Makefile.switch2
-      - src/**
-      - assets/**
-      - reference/extracted/**
-      - tools/prepare_switch_romfs.py
-      - tools/inspect_nro.py
 
 permissions:
   contents: read
@@ -22,7 +13,7 @@ concurrency:
 
 jobs:
   build-switch2:
-    name: Build experimental Switch 2 NRO
+    name: Build Nintendo Switch 2 NRO
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     container:
@@ -94,7 +85,7 @@ jobs:
           for at in (0x08, 0x18, 0x28):
               offset, size = struct.unpack_from('<QQ', data, asset_start+at)
               assert size > 0 and asset_start+offset+size <= len(data)
-          report = dict(platform='switch2', experimental=True, sourceCommit=os.environ['SOURCE_COMMIT'],
+          report = dict(platform='switch2', experimental=False, sourceCommit=os.environ['SOURCE_COMMIT'],
                         sdkVersion=os.environ['OUNCE_DEVKIT_VERSION'], sdkCommit=os.environ['OUNCE_DEVKIT_COMMIT'],
                         sha256=hashlib.sha256(data).hexdigest(), bytes=len(data),
                         embeddedRomfs=True, consoleValidated=False,
@@ -102,10 +93,10 @@ jobs:
           Path('switch2-build.json').write_text(json.dumps(report, indent=2)+'\n')
           Path(nro.name+'.sha256').write_text(report['sha256']+'  '+nro.name+'\n')
           PY
-          echo '### Switch 2 experimental build' >> "$GITHUB_STEP_SUMMARY"
+          echo '### Switch 2 build' >> "$GITHUB_STEP_SUMMARY"
           echo 'NRO compiled and embedded assets verified. Console, controls, audio, save and Google Drive restore tests remain pending.' >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload experimental NRO
+      - name: Upload Switch 2 NRO
         uses: actions/upload-artifact@v4
         with:
           name: heroes_lore_switch2_nro

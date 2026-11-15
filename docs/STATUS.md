@@ -254,3 +254,11 @@ _Ãšltima atualizaÃ§Ã£o: 2026-10-04_
 - Atualizador diferencia o NRO de Switch 2; inicialização de rede permanece ativa.
 - Compilação GitHub Actions aprovada na revisão daa804a4326ac75549ae8a15867c2222d2bd0b40. NRO e recursos embutidos verificados; transferência Netloader aceita. Execução e funcionamento geral aprovados no console após o envio pelo Netloader. A confirmação recebida não discrimina individualmente o ciclo Google Drive.
 - Sem nova release ou integração à main. Instruções em docs/SWITCH2.md.
+
+## 15/11/2026 — integração e publicação Switch 2
+
+- Execução desta build aprovada no console após envio pelo Netloader.
+- Build Switch 2 incorporada ao workflow multiplataforma por workflow_call: main/PR geram artefatos e tags publicam NRO e SHA-256.
+- Versão do NACP deriva de Makefile.switch, acompanhando as ferramentas de atualização existentes.
+- Publicação manual usa inputs.release_tag; a expressão antiga priorizava github.ref_name e poderia selecionar a branch.
+- Saves e nuvem permanecem com o código, os nomes e a identidade específicos do jogo. NRO testado preservado para a release atual.

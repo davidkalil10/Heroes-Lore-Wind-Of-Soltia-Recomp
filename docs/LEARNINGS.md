@@ -850,3 +850,11 @@ O receptor Netloader confirmou a transferência, com 39.192.001 bytes comprimido
 ### Execução aprovada no console
 
 Em 15/11/2026, o Heroes Lore: Wind of Soltia da revisão `daa804a4326ac75549ae8a15867c2222d2bd0b40` recebeu confirmação de funcionamento após envio pelo Netloader. Preservar o NRO e seu SHA-256 como referência; mudanças futuras exigem novo teste. A aprovação mantém o mesmo código de persistência e nuvem, sem inferir testes individuais não discriminados.
+
+## 15/11/2026 — integração e publicação Switch 2
+
+- Execução desta build aprovada no console após envio pelo Netloader.
+- Build Switch 2 incorporada ao workflow multiplataforma por workflow_call: main/PR geram artefatos e tags publicam NRO e SHA-256.
+- Versão do NACP deriva de Makefile.switch, acompanhando as ferramentas de atualização existentes.
+- Publicação manual usa inputs.release_tag; a expressão antiga priorizava github.ref_name e poderia selecionar a branch.
+- Saves e nuvem permanecem com o código, os nomes e a identidade específicos do jogo. NRO testado preservado para a release atual.

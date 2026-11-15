@@ -99,3 +99,7 @@ Se optar por fazer o processo manualmente, siga este checklist:
   git push origin vX.Y.Z
   ```
 - [ ] 7. Acompanhar a compilação multi-plataforma e release automático no GitHub Actions (`.github/workflows/build.yml`).
+
+## Switch 2
+
+`Makefile.switch2` herda `APP_VERSION` de `Makefile.switch`. O procedimento de bump continua único; não editar uma segunda versão para Switch 2. O workflow multiplataforma gera `heroes_lore_switch2.nro` e inclui o arquivo e SHA-256 na publicação por tag `v*` ou execução manual com criação de release habilitada. O workflow reutilizável de Switch 2 não publica sozinho.

@@ -1,4 +1,4 @@
-name: Build Multiplatform & Release (Switch, Windows, Android)
+name: Build Multiplatform & Release (Switch, Switch 2, Windows, Linux, Android)
 
 on:
   push:
@@ -19,6 +19,12 @@ on:
         default: 'v1.0.0'
 
 jobs:
+  build-switch2:
+    name: Nintendo Switch 2 (.nro)
+    uses: ./.github/workflows/build-switch2.yml
+    permissions:
+      contents: read
+
   # ==============================================================================
   # 1. Nintendo Switch (.nro Homebrew)
   # ==============================================================================
@@ -250,7 +256,7 @@ jobs:
   # ==============================================================================
   release:
     name: Publicar Release Multiplataforma
-    needs: [build-switch, build-windows, build-linux, build-android]
+    needs: [build-switch, build-switch2, build-windows, build-linux, build-android]
     if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true)
     runs-on: ubuntu-latest
     permissions:
@@ -261,6 +267,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: heroes_lore_switch_nro
+
+      - name: Baixar Artefato Switch 2
+        uses: actions/download-artifact@v4
+        with:
+          name: heroes_lore_switch2_nro
+          path: switch2
 
       - name: Baixar Artefato Windows
         uses: actions/download-artifact@v4
@@ -283,12 +295,16 @@ jobs:
       - name: Criar GitHub Release Oficial
         uses: softprops/action-gh-release@v2
         with:
-          name: "Heroes Lore: Wind of Soltia ${{ github.ref_name || inputs.release_tag }}"
-          tag_name: ${{ github.ref_name || inputs.release_tag }}
+          name: "Heroes Lore: Wind of Soltia ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}"
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          fail_on_unmatched_files: true
           draft: false
           prerelease: false
           generate_release_notes: true
           files: |
+            switch2/heroes_lore_switch2.nro
+            switch2/heroes_lore_switch2.nro.sha256
             heroes_lore.nro
             heroes_lore.exe
             heroes_lore_windows_x64.zip

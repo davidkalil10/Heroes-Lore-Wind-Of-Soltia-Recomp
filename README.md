@@ -19,6 +19,7 @@ Os binários compilados oficiais e prontos para jogar de cada plataforma estão 
 | Plataforma | Formato | Tamanho | Como Jogar |
 | :--- | :--- | :--- | :--- |
 | 🎮 **Nintendo Switch** | `.nro` | ~7 MB | Copie `heroes_lore.nro` para `/switch/heroes_lore/` no cartão SD e abra via Homebrew Menu. |
+| Nintendo Switch 2 | `.nro` | Recursos embutidos | Baixe `heroes_lore_switch2.nro` e execute pelo hbmenu/kaiHEN no SD ou Netloader. |
 | 🪟 **Windows x64** | `.zip` | ~12 MB | Baixe `heroes_lore_windows_x64.zip`, extraia e dê dois cliques em `heroes_lore.exe` (portátil, com DLLs e assets inclusos). |
 | 🐧 **Linux / Steam Deck** | `.AppImage` | ~14 MB | Dê permissão com `chmod +x heroes_lore_linux_x86_64.AppImage` e execute com dois cliques ou terminal. |
 | 📱 **Android** | `.apk` | ~2.5 MB | Instale `heroes_lore_android_arm64.apk` (smartphones modernos) ou `heroes_lore_android_universal.apk`. |
@@ -249,3 +250,11 @@ Para detalhes sobre a engenharia reversa das 90 classes ofuscadas, resolução d
 ## ⚖️ Licença e Aviso Legal
 
 Este projeto é uma obra de preservação histórica de software e engenharia reversa educacional. Todas as marcas registradas, títulos, gráficos e áudios originais de *Heroes Lore: Wind of Soltia* pertencem à *Hands-On Mobile* e *Electronic Arts (EA)*.
+
+## Nintendo Switch 2 e builds automáticas
+
+Heroes Lore: Wind of Soltia tem build própria para Switch 2, usando [ounce-devkit](https://github.com/ouncebrew/ounce-devkit), [libounce](https://github.com/ouncebrew/libounce), [OunceVK](https://github.com/ouncebrew/ouncevk), [kaiHEN](https://github.com/ouncebrew/kaihen) e [ounce-hbmenu](https://github.com/ouncebrew/ounce-hbmenu). Créditos aos projetos e seus contribuidores.
+
+Baixe **heroes_lore_switch2.nro** na release. O arquivo contém os recursos e foi testado no console; não é o NRO de Switch 1. Execute com kaiHEN/hbmenu pelo SD ou Netloader. Saves e integração Google Drive mantêm o formato e a identidade específicos deste jogo.
+
+A compilação multiplataforma gera também o NRO de Switch 2 em pushes na main, pull requests e novas tags. O NRO fica nos artefatos do Actions; tags `v*` publicam o arquivo e SHA-256 na release junto das outras plataformas. A execução manual permite compilar sem publicar ou publicar informando a tag. `APP_VERSION` do Switch 2 acompanha automaticamente o Makefile de Switch 1, já atualizado pelas ferramentas de versão do projeto. [Instruções e validação](docs/SWITCH2.md).
