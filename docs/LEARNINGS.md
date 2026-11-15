@@ -840,3 +840,9 @@ Fonte: `heroes_lore_modern/PROJECT_KNOWLEDGE_BACKUP.md`
 O conjunto ounce-devkit 20261115, revisão de instalador 0f38ba80d7ee768c5749278f127749d14ece2036, foi aplicado em workflow separado. Makefile.switch2 seleciona libounce/switch2_rules e SWITCH2_CPU, com diretório de objetos e NRO próprios. As bibliotecas gráficas Switch 2 ficam à frente das portlibs compatíveis. Preservar SDL2/mixer/curl e a inicialização de rede. A imagem devkitPro pode usar dkp-pacman para listar os pacotes; não pressupor o nome pacman.
 
 O backup de nuvem deste jogo usa heroes_lore_save.json e arquivos _k/_s/_w/_o/_c.rms, com pasta Google Drive própria. Não transportar nomes HOL.* ou a identidade do Heroes Lore Zero. O atualizador precisa tratar __SWITCH2__ antes de __SWITCH__ e aceitar apenas heroes_lore_switch2.nro. Código dos saves e formato de backup foram preservados. Compilar não comprova os serviços no console; ver docs/SWITCH2.md.
+
+## Compilação e envio — 15/11/2026
+
+A execução [43688499234](https://github.com/davidkalil10/Heroes-Lore-Wind-Of-Soltia-Recomp/actions/runs/43688499234) gerou o NRO da revisão `daa804a4326ac75549ae8a15867c2222d2bd0b40`. Tamanho: 100.444.164 bytes. SHA-256: `ebe6c34957e36a3a208067a4eefee8d13d1af072f3438b8451fb51b7906fe43f`. Ícone, NACP e RomFS foram verificados. O binário contém o nome específico do atualizador Switch 2.
+
+O receptor Netloader confirmou a transferência, com 39.192.001 bytes comprimidos. Nome enviado: `heroes_lore_switch2_daa804a.nro`, distinto do Zero e do binário de Switch 1. Nenhum arquivo de save foi acessado pela transferência. A confirmação do protocolo não prova que o jogo abriu; execução e backup/restauração deste jogo ainda aguardam teste físico. A pasta original e a main permanecem intactas.

@@ -29,3 +29,9 @@ Com hbmenu ativo, abra Netloader e envie o NRO por nxlink usando o IP do console
 O envio deve usar um nome distinto do Zero e da build de Switch 1. Antes de transferir, confirme que o console voltou à espera do Netloader. Verifique abertura, imagem, controles, áudio, progresso, nuvem e retorno ao hbmenu.
 
 Créditos: [ounce-devkit](https://github.com/ouncebrew/ounce-devkit), [libounce](https://github.com/ouncebrew/libounce), [OunceVK](https://github.com/ouncebrew/ouncevk), [kaiHEN](https://github.com/ouncebrew/kaihen), devkitPro e contribuidores.
+
+## Compilação e envio — 15/11/2026
+
+A execução [43688499234](https://github.com/davidkalil10/Heroes-Lore-Wind-Of-Soltia-Recomp/actions/runs/43688499234) gerou o NRO da revisão `daa804a4326ac75549ae8a15867c2222d2bd0b40`. Tamanho: 100.444.164 bytes. SHA-256: `ebe6c34957e36a3a208067a4eefee8d13d1af072f3438b8451fb51b7906fe43f`. Ícone, NACP e RomFS foram verificados. O binário contém o nome específico do atualizador Switch 2.
+
+O receptor Netloader confirmou a transferência, com 39.192.001 bytes comprimidos. Nome enviado: `heroes_lore_switch2_daa804a.nro`, distinto do Zero e do binário de Switch 1. Nenhum arquivo de save foi acessado pela transferência. A confirmação do protocolo não prova que o jogo abriu; execução e backup/restauração deste jogo ainda aguardam teste físico. A pasta original e a main permanecem intactas.
