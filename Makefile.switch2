@@ -1,0 +1,156 @@
+#---------------------------------------------------------------------------------
+.SUFFIXES:
+#---------------------------------------------------------------------------------
+
+ifeq ($(strip $(DEVKITPRO)),)
+$(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
+endif
+
+TOPDIR ?= $(CURDIR)
+include $(DEVKITPRO)/libounce/switch2_rules
+
+#---------------------------------------------------------------------------------
+# TARGET is the name of the output
+# BUILD is the directory where object files & intermediate files will be placed
+# SOURCES is a list of directories containing code
+# INCLUDES is a list of directories containing extra header files
+# DATA is a list of directories containing binary data
+# ROMFS is the path to a directory containing the assets to be bundled into the nro
+#---------------------------------------------------------------------------------
+TARGET      :=  heroes_lore_switch2
+BUILD       :=  build_switch2
+SOURCES     :=  src src/midp src/platform src/vm
+DATA        :=
+INCLUDES    :=  src third_party
+ROMFS       :=  romfs
+
+# Metadata para o Homebrew Menu (.nacp e .nro)
+APP_TITLE   :=  Heroes Lore: Wind of Soltia (Switch 2)
+APP_DESCRIPTION := Recompilacao Nativa C++17 + SDL2 por David Kalil Braga (2026)
+APP_AUTHOR  :=  EA Mobile / Port por David Kalil Braga (2026)
+APP_VERSION :=  1.2.8
+APP_TITLEID :=  0100686C73000000
+APP_ICON    :=  $(TOPDIR)/switch/icon.jpg
+
+PORTLIBS ?= $(DEVKITPRO)/portlibs/switch
+LIBNX    ?= $(DEVKITPRO)/libnx
+
+#---------------------------------------------------------------------------------
+# options for code generation
+#---------------------------------------------------------------------------------
+ARCH    :=  $(SWITCH2_CPU) -mtp=soft -fPIE
+
+CFLAGS  :=  -g -Wall -O2 -ffunction-sections -pthread \
+            $(ARCH) $(DEFINES)
+
+CFLAGS  +=  $(INCLUDE) -I$(PORTLIBS)/include/SDL2 -I$(PORTLIBS)/include -I$(LIBNX)/include -D__SWITCH__
+
+CXXFLAGS    := $(CFLAGS) -std=gnu++17 -fexceptions -pthread
+
+ASFLAGS :=  -g $(ARCH)
+LDFLAGS = -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -pthread -Wl,-Map,$(notdir $*.map)
+
+LIBS    := -L$(PORTLIBS)/lib -L$(LIBNX)/lib -lcurl -lmbedtls -lmbedx509 -lmbedcrypto -lz -lSDL2_mixer -lmodplug -lmpg123 -lvorbisfile -lvorbis -logg -lopusfile -lopus -lFLAC -lSDL2 -lEGL -lglapi -ldrm_nouveau -lnx
+
+#---------------------------------------------------------------------------------
+# list of directories containing libraries, this must be the top level containing
+# include and lib
+#---------------------------------------------------------------------------------
+LIBDIRS := $(PORTLIBS) $(LIBNX)
+
+#---------------------------------------------------------------------------------
+# no toying with the rest unless you know what you are doing
+#---------------------------------------------------------------------------------
+ifneq ($(BUILD),$(notdir $(CURDIR)))
+#---------------------------------------------------------------------------------
+
+export OUTPUT   :=  $(CURDIR)/$(TARGET)
+export TOPDIR   :=  $(CURDIR)
+
+export APP_TITLE
+export APP_DESCRIPTION
+export APP_AUTHOR
+export APP_VERSION
+export APP_TITLEID
+export APP_ICON
+
+export VPATH    :=  $(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
+                    $(foreach dir,$(DATA),$(CURDIR)/$(dir))
+
+export DEPSDIR  :=  $(CURDIR)/$(BUILD)
+
+CFILES      :=  $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CPPFILES    :=  $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
+sFILES      :=  $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+SFILES      :=  $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
+BINFILES    :=  $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
+
+ifeq ($(strip $(CPPFILES)),)
+    export LD   :=  $(CC)
+else
+    export LD   :=  $(CXX)
+endif
+
+export OFILES_BIN   :=  $(addsuffix .o,$(BINFILES))
+export OFILES_SRC   :=  $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(sFILES:.s=.o) $(SFILES:.S=.o)
+export OFILES       :=  $(OFILES_BIN) $(OFILES_SRC)
+export HFILES_BIN   :=  $(addsuffix .h,$(subst .,_,$(BINFILES)))
+
+export INCLUDE  :=  $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
+                    $(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+                    -I$(PORTLIBS)/include/SDL2 \
+                    -I$(PORTLIBS)/include \
+                    -I$(LIBNX)/include \
+                    -I$(CURDIR)/$(BUILD)
+
+export LIBPATHS :=  $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
+
+export NROFLAGS :=
+
+ifeq ($(strip $(ROMFS)),)
+    export NROFLAGS +=
+else
+    export NROFLAGS += --romfsdir=$(CURDIR)/$(ROMFS)
+endif
+
+ifneq ($(strip $(APP_ICON)),)
+    export NROFLAGS += --icon=$(APP_ICON)
+endif
+
+ifneq ($(strip $(APP_TITLE)),)
+    export NROFLAGS += --nacp=$(OUTPUT).nacp
+endif
+
+.PHONY: $(BUILD) clean all
+
+all: $(BUILD)
+
+$(BUILD):
+	@[ -d $@ ] || mkdir -p $@
+	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile.switch2
+
+clean:
+	@echo clean ...
+	@rm -fr $(BUILD) $(TARGET).pfs0 $(TARGET).nso $(TARGET).nro $(TARGET).elf
+
+#---------------------------------------------------------------------------------
+else
+
+DEPENDS :=  $(OFILES:.o=.d)
+
+all: $(OUTPUT).nro
+
+$(OUTPUT).nro:  $(OUTPUT).elf $(OUTPUT).nacp
+
+$(OUTPUT).nacp:
+	@echo "Creating $(notdir $@)..."
+	@nacptool --create "$(APP_TITLE)" "$(APP_AUTHOR)" "$(APP_VERSION)" $@
+
+$(OUTPUT).elf:  $(OFILES)
+
+$(OFILES_SRC): $(HFILES_BIN)
+
+-include $(DEPENDS)
+
+endif
+#---------------------------------------------------------------------------------

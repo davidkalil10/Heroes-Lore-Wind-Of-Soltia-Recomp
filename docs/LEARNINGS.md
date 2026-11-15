@@ -834,3 +834,9 @@ Fonte: `heroes_lore_modern/PROJECT_KNOWLEDGE_BACKUP.md`
        - `src/platform/heroes_lore.ico`: Arquivo multi-resolução contendo tamanhos 16x16, 24x24, 32x32, 48x48, 64x64, 128x128 e 256x256.
        - `src/platform/heroes_lore.rc`: Arquivo de recurso compilado via `windres` e embutido no executável `heroes_lore.exe` via `CMakeLists.txt` (`if(WIN32) list(APPEND SOURCES ${RC_FILE})`).
        - `src/platform/platform_sdl.cpp`: Leitura de `ui/app_icon.rgba` e chamada `SDL_SetWindowIcon(s_window, iconSurf)`, exibindo o novo ícone na barra de tarefas e na janela do jogo.
+
+## 15/11/2026 — build separada para Switch 2
+
+O conjunto ounce-devkit 20261115, revisão de instalador 0f38ba80d7ee768c5749278f127749d14ece2036, foi aplicado em workflow separado. Makefile.switch2 seleciona libounce/switch2_rules e SWITCH2_CPU, com diretório de objetos e NRO próprios. As bibliotecas gráficas Switch 2 ficam à frente das portlibs compatíveis. Preservar SDL2/mixer/curl e a inicialização de rede. A imagem devkitPro pode usar dkp-pacman para listar os pacotes; não pressupor o nome pacman.
+
+O backup de nuvem deste jogo usa heroes_lore_save.json e arquivos _k/_s/_w/_o/_c.rms, com pasta Google Drive própria. Não transportar nomes HOL.* ou a identidade do Heroes Lore Zero. O atualizador precisa tratar __SWITCH2__ antes de __SWITCH__ e aceitar apenas heroes_lore_switch2.nro. Código dos saves e formato de backup foram preservados. Compilar não comprova os serviços no console; ver docs/SWITCH2.md.

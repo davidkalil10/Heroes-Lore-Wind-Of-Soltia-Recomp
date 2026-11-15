@@ -1,0 +1,130 @@
+name: Experimental Nintendo Switch 2 NRO
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/switch2-action]
+    paths:
+      - .github/workflows/build-switch2.yml
+      - Makefile.switch2
+      - src/**
+      - assets/**
+      - reference/extracted/**
+      - tools/prepare_switch_romfs.py
+      - tools/inspect_nro.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hlsoltia-switch2-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-switch2:
+    name: Build experimental Switch 2 NRO
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    container:
+      image: devkitpro/devkita64:20260219
+    defaults:
+      run:
+        shell: bash
+    env:
+      DEVKITPRO: /opt/devkitpro
+      DEVKITA64: /opt/devkitpro/devkitA64
+      OUNCE_DEVKIT_COMMIT: 0f38ba80d7ee768c5749278f127749d14ece2036
+      OUNCE_DEVKIT_VERSION: '20261115'
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Prepare pinned Switch 2 SDK
+        run: |
+          set -euo pipefail
+          sdk="$RUNNER_TEMP/ounce-devkit"
+          git init "$sdk"
+          git -C "$sdk" fetch --depth=1 https://github.com/ouncebrew/ounce-devkit.git "$OUNCE_DEVKIT_COMMIT"
+          git -C "$sdk" checkout --detach FETCH_HEAD
+          test "$(git -C "$sdk" rev-parse HEAD)" = "$OUNCE_DEVKIT_COMMIT"
+          bash "$sdk/install.sh" "$OUNCE_DEVKIT_VERSION"
+          test -f "$DEVKITPRO/libounce/switch2_rules"
+          test -f "$DEVKITPRO/portlibs/switch2/lib/libEGL.a"
+          test -f "$DEVKITPRO/portlibs/switch/lib/libSDL2.a"
+          test -f "$DEVKITPRO/portlibs/switch/lib/libSDL2_mixer.a"
+          test -f "$DEVKITPRO/portlibs/switch/lib/libcurl.a"
+          cat "$DEVKITPRO/ounce-devkit-version.txt"
+          "$DEVKITA64/bin/aarch64-none-elf-g++" --version > switch2-packages.txt
+          if command -v dkp-pacman >/dev/null 2>&1; then
+            dkp-pacman -Q >> switch2-packages.txt
+          elif command -v pacman >/dev/null 2>&1; then
+            pacman -Q >> switch2-packages.txt
+          fi
+
+      - name: Prepare embedded assets
+        run: |
+          set -euo pipefail
+          test -f reference/extracted/META-INF/MANIFEST.MF
+          test -f switch/icon.jpg
+          python3 tools/prepare_switch_romfs.py
+
+      - name: Compile Switch 2 NRO
+        run: |
+          set -euo pipefail
+          export PATH="$DEVKITPRO/tools/bin:$DEVKITA64/bin:$PATH"
+          make -f Makefile.switch2 -j2 2>&1 | tee switch2-build.log
+
+      - name: Inspect NRO and record build
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python3 tools/inspect_nro.py heroes_lore_switch2.nro
+          python3 - <<'PY'
+          import hashlib, json, os, struct
+          from pathlib import Path
+          nro = Path('heroes_lore_switch2.nro')
+          data = nro.read_bytes()
+          assert data[0x10:0x14] == b'NRO0'
+          asset_start = struct.unpack_from('<I', data, 0x18)[0]
+          assert data[asset_start:asset_start+4] == b'ASET'
+          for at in (0x08, 0x18, 0x28):
+              offset, size = struct.unpack_from('<QQ', data, asset_start+at)
+              assert size > 0 and asset_start+offset+size <= len(data)
+          report = dict(platform='switch2', experimental=True, sourceCommit=os.environ['SOURCE_COMMIT'],
+                        sdkVersion=os.environ['OUNCE_DEVKIT_VERSION'], sdkCommit=os.environ['OUNCE_DEVKIT_COMMIT'],
+                        sha256=hashlib.sha256(data).hexdigest(), bytes=len(data),
+                        embeddedRomfs=True, consoleValidated=False,
+                        saves='Existing RMS format and Google Drive backup/restore retained; requires console validation')
+          Path('switch2-build.json').write_text(json.dumps(report, indent=2)+'\n')
+          Path(nro.name+'.sha256').write_text(report['sha256']+'  '+nro.name+'\n')
+          PY
+          echo '### Switch 2 experimental build' >> "$GITHUB_STEP_SUMMARY"
+          echo 'NRO compiled and embedded assets verified. Console, controls, audio, save and Google Drive restore tests remain pending.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload experimental NRO
+        uses: actions/upload-artifact@v4
+        with:
+          name: heroes_lore_switch2_nro
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            heroes_lore_switch2.nro
+            heroes_lore_switch2.nro.sha256
+            switch2-build.json
+            docs/SWITCH2.md
+
+      - name: Preserve build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: heroes_lore_switch2_logs
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            switch2-build.log
+            switch2-build.json
+            switch2-packages.txt

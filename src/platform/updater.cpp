@@ -94,7 +94,10 @@ static std::string extractJsonString(const std::string& json, const std::string&
 
 // Retorna lista de nomes de arquivos candidatos no release do GitHub para a plataforma atual (por ordem de prioridade)
 static std::vector<std::string> getCandidateAssetNames() {
-#if defined(__SWITCH__)
+#if defined(__SWITCH2__)
+  // Keep experimental Switch 2 builds from selecting a Switch 1 update.
+  return { "heroes_lore_switch2.nro" };
+#elif defined(__SWITCH__)
   return { "heroes_lore.nro" };
 #elif defined(__ANDROID__)
   return { "heroes_lore_android_universal.apk", "heroes_lore_android_arm64.apk" };

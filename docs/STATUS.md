@@ -246,3 +246,11 @@ _Ãšltima atualizaÃ§Ã£o: 2026-10-04_
 
 
 
+
+## Switch 2 — build experimental (15/11/2026)
+
+- Workflow e Makefile.switch2 separados, com SDK fixado e saída heroes_lore_switch2.nro.
+- Código de persistência e Google Drive preservado, incluindo identidades específicas do Wind of Soltia.
+- Atualizador diferencia o NRO de Switch 2; inicialização de rede permanece ativa.
+- Compilação e testes físicos pendentes neste checkpoint. O resultado aprovado do Zero é referência do ambiente, não validação deste jogo.
+- Sem nova release ou integração à main. Instruções em docs/SWITCH2.md.
